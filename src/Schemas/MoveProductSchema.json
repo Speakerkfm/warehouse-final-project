@@ -1,0 +1,53 @@
+{
+  "title": "MoveProductSchema",
+  "description": "Schema for moving products",
+  "require": ["movement_type", "product_list", "warehouses"],
+  "type": "array",
+  "properties": {
+    "movement_type": {
+      "type": "string",
+      "enum": ["app", "detach", "move"]
+    },
+    "product_list": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/product_list" }
+    },
+    "warehouses": {
+      "type": "array",
+      "properties": {
+        "to": {
+          "type": "integer",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "from": {
+          "type": "integer",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    }
+  },
+
+  "definitions": {
+    "product_list": {
+      "type": "array",
+      "require": [
+        "id",
+        "count"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    }
+  }
+}

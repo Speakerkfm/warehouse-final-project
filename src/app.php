@@ -8,6 +8,11 @@ use App\Services\WarehouseService;
 use App\Controller\WarehouseController;
 use App\Services\ProductService;
 use App\Controller\ProductController;
+use App\Repository\WarehouseRepository;
+use App\Repository\UserRepository;
+use App\Repository\ProductRepository;
+use App\Repository\TransactionRepository;
+use App\Repository\ProductsOnWarehouseRepository;
 
 $container = $app->getContainer();
 
@@ -23,65 +28,101 @@ $container['db'] = function () {
 };
 
 
-$container['users.controller'] = function ($c) {
+$container['user.controller'] = function ($c) {
     /** @var ContainerInterface $c*/
-    return new UserController($c->get('users.service'));
+    return new UserController($c->get('user.service'));
 };
 
-$container['users.service'] = function ($c) {
+$container['warehouse.controller'] = function ($c) {
+    /** @var ContainerInterface $c*/
+    return new WarehouseController($c->get('warehouse.service'));
+};
+
+
+$container['product.controller'] = function ($c) {
+    /** @var ContainerInterface $c*/
+    return new ProductController($c->get('product.service'));
+};
+
+$container['user.service'] = function ($c) {
     /** @var ContainerInterface $c */
-    return new UserService($c->get('db'));
+    return new UserService($c->get('user.repository'));
 };
 
-$container['warehouses.controller'] = function ($c) {
+$container['warehouse.service'] = function ($c) {
     /** @var ContainerInterface $c*/
-    return new WarehouseController($c->get('warehouses.service'));
+    return new WarehouseService(
+        $c->get('warehouse.repository'),
+        $c->get('product.repository'),
+        $c->get('transaction.repository'),
+        $c->get('productsOnWarehouse.repository')
+    );
 };
 
-$container['warehouses.service'] = function ($c) {
+$container['product.service'] = function ($c) {
     /** @var ContainerInterface $c*/
-    return new WarehouseService($c->get('db'));
+    return new ProductService(
+        $c->get('product.repository'),
+        $c->get('transaction.repository'),
+        $c->get('productsOnWarehouse.repository'),
+        $c->get('warehouse.repository')
+        );
 };
 
-$container['products.controller'] = function ($c) {
-    /** @var ContainerInterface $c*/
-    return new ProductController($c->get('products.service'));
+$container['warehouse.repository'] = function ($c) {
+    /** @var ContainerInterface $c */
+    return new WarehouseRepository($c->get('db'));
 };
 
-$container['products.service'] = function ($c) {
-    /** @var ContainerInterface $c*/
-    return new ProductService($c->get('db'));
+$container['user.repository'] = function ($c) {
+    /** @var ContainerInterface $c */
+    return new UserRepository($c->get('db'));
+};
+
+$container['product.repository'] = function ($c) {
+    /** @var ContainerInterface $c */
+    return new ProductRepository($c->get('db'));
+};
+
+$container['productsOnWarehouse.repository'] = function ($c) {
+    /** @var ContainerInterface $c */
+    return new ProductsOnWarehouseRepository($c->get('db'));
+};
+
+$container['transaction.repository'] = function ($c) {
+    /** @var ContainerInterface $c */
+    return new TransactionRepository($c->get('db'));
 };
 
 
-$app->post('/register', 'users.controller:RegisterUser');
-$app->post('/login', 'users.controller:LoginUser');
+$app->post('/register', 'user.controller:RegisterUser');
+$app->post('/login', 'user.controller:LoginUser');
 $app->group('/profile', function () use ($app) {
-        $app->get('/info', 'users.controller:UserInfo');
-        $app->get('/warehouses', 'warehouses.controller:GetWarehouseList');
+        $app->get('/info', 'user.controller:UserInfo');
+        $app->get('/warehouses', 'warehouse.controller:GetWarehouseList');
         $app->group('/warehouses', function () use ($app) {
-            $app->post('/create', 'warehouses.controller:CreateWarehouse');
-            $app->post('/move', 'warehouses.controller:MoveProducts');
-            $app->get('/{id}', 'warehouses.controller:GetWarehouse');
+            $app->post('/create', 'warehouse.controller:CreateWarehouse');
+            $app->post('/move', 'warehouse.controller:MoveProducts');
+            $app->get('/{id}', 'warehouse.controller:GetWarehouse');
             $app->group('/{id}', function () use ($app) {
-                $app->post('/update', 'warehouses.controller:UpdateWarehouse');
-                $app->get('/logs', 'warehouses.controller:GetLogs');
-                $app->get('/delete', 'warehouses.controller:DeleteWarehouse');
-                $app->get('/products', 'warehouses.controller:GetProductsList');
+                $app->post('/update', 'warehouse.controller:UpdateWarehouse');
+                $app->get('/logs', 'warehouse.controller:GetLogs');
+                $app->get('/delete', 'warehouse.controller:DeleteWarehouse');
+                $app->get('/products', 'warehouse.controller:GetProductsList');
             });
         });
-        $app->get('/products', 'products.controller:GetProductList');
+        $app->get('/products', 'product.controller:GetProductList');
         $app->group('/products', function () use ($app) {
-            $app->post('/create', 'products.controller:CreateProduct');
-            $app->get('/{id}', 'products.controller:GetProduct');
+            $app->post('/create', 'product.controller:CreateProduct');
+            $app->get('/{id}', 'product.controller:GetProduct');
             $app->group('/{id}', function () use ($app) {
-                $app->post('/update', 'products.controller:UpdateProduct');
-                $app->get('/logs', 'products.controller:GetLogs');
-                $app->get('/delete', 'products.controller:DeleteProduct');
-                $app->get('/available', 'products.controller:GetAvailableInfo');
+                $app->post('/update', 'product.controller:UpdateProduct');
+                $app->get('/logs', 'product.controller:GetLogs');
+                $app->get('/delete', 'product.controller:DeleteProduct');
+                $app->get('/available', 'product.controller:GetAvailableInfo');
             });
         });
-        $app->get('/delete', 'users.controller:DeleteUser');
-        $app->get('/logout', 'users.controller:LogoutUser');
-        $app->post('/update', 'users.controller:UpdateUser');
+        $app->get('/delete', 'user.controller:DeleteUser');
+        $app->get('/logout', 'user.controller:LogoutUser');
+        $app->post('/update', 'user.controller:UpdateUser');
 });

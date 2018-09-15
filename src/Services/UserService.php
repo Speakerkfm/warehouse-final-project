@@ -2,11 +2,21 @@
 
 namespace App\Services;
 
-use Doctrine\DBAL\Connection;
-use http\Exception\InvalidArgumentException;
+use App\Repository\UserRepository;
+use App\Model\User;
 
-class UserService extends AbstractService
+class UserService
 {
+    /**
+     * @var UserRepository
+     */
+    private $userRepository;
+
+    public function __construct(UserRepository $userRepository)
+    {
+        $this->userRepository = $userRepository;
+    }
+
     /**
      * @param $email string
      * @param $name string
@@ -14,169 +24,70 @@ class UserService extends AbstractService
      * @param $password string
      * @param $phone_number string
      * @param $company_name string
-     * @return null|string
-     * @throws \Doctrine\DBAL\DBALException
+     * @return User
+     * @throws
      */
     public function RegisterUser($email, $name, $surname, $password, $phone_number, $company_name)
     {
-        $company_id = $this->dbConnection->executeQuery(
-            'SELECT id FROM companies WHERE company_name = ?',
-            [$company_name]
-        )->fetch(\PDO::FETCH_ASSOC)['id'];
-
-        if ($company_id == null){
-            throw new \InvalidArgumentException('Company does not exist!');
-        }
-
-        $email_duplicates = $this->dbConnection->executeQuery(
-            'SELECT COUNT(*) FROM users WHERE email = ?',
-            [$email]
-        )->fetch(\PDO::FETCH_ASSOC)['COUNT(*)'];
-
-        if ($email_duplicates > 0){
-            throw new \InvalidArgumentException('User with this email has already registered!');
-        }
-
-        $fio_duplicates = $this->dbConnection->executeQuery(
-            'SELECT COUNT(*) FROM users WHERE name = ? AND surname = ? AND company_id = ?',
-            [$name, $surname, $company_id]
-        )->fetch(\PDO::FETCH_ASSOC)['COUNT(*)'];
-
-        if ($fio_duplicates > 0){
-            throw new \InvalidArgumentException('User with this name in this company has already registered!');
-        }
-
-        if ($company_id != null && $email_duplicates == 0 && $fio_duplicates == 0) {
-            $salt = uniqid();
-            $password_hash = md5($password . $salt);
-            $this->dbConnection->executeQuery(
-                'INSERT INTO users 
-                    (email, name, surname, password, phone_number, company_id, salt)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [
-                    $email,
-                    $name,
-                    $surname,
-                    $password_hash,
-                    $phone_number,
-                    $company_id,
-                    $salt
-                ]
-            );
-            return $this->dbConnection->lastInsertId();
-        } else {
-            return null;
-        }
+        return $this->userRepository->RegisterUser($email, $name, $surname, $password, $phone_number, $company_name);
     }
 
+    /**
+     * @param $email string
+     * @param $password string
+     * @return int
+     */
     public function LoginUser($email, $password)
     {
-        //if (preg_match("/^[a-zA-Z0-9]{3,30}$/", $email))
-        {
-            $row = $this->dbConnection->executeQuery(
-                'SELECT * FROM users WHERE email = ?',
-                [
-                    $email
-                ]
-            )->fetch(\PDO::FETCH_ASSOC);
-
-            if (isset($row)) {
-                $password_hash = md5($password.$row['salt']);
-                if ($password_hash == $row['password']) {
-                    return [
-                        'id' => $row['id'],
-                        'status' => 'OK'
-                        ];
-                } else {
-                    return [
-                        'status' => 'Bad'
-                    ];
-                }
-            }
-        }
+        return $this->userRepository->LoginUser($email, $password);
     }
 
+    /**
+     * @param $user_id int
+     */
     public function DeleteUser($user_id)
     {
-        $this->dbConnection->executeQuery(
-            'DELETE FROM users WHERE id = ?',
-            [$user_id]
-        );
+        $this->userRepository->DeleteUser($user_id);
     }
 
+    /**
+     * @param $user_id int
+     * @param $email string
+     * @param $name string
+     * @param $surname string
+     * @param $password string
+     * @param $phone_number string
+     * @param $company_name string
+     * @return User
+     */
     public function UpdateUser($user_id, $email, $name, $surname, $password, $phone_number, $company_name)
     {
-        $company_id = $this->dbConnection->executeQuery(
-            'SELECT id FROM companies WHERE company_name = ?',
-            [$company_name]
-        )->fetch(\PDO::FETCH_ASSOC)['id'];
+        $user = $this->userRepository->GetUser($user_id);
 
-        if ($company_id == null){
-            throw new \InvalidArgumentException('Company does not exist!');
-        }
+        $user->setEmail($email);
+        $user->setName($name);
+        $user->setSurname($surname);
+        $user->setPassword($password);
+        $user->setPhoneNumber($phone_number);
+        $user->setCompanyName($company_name);
 
-        $email_duplicates = $this->dbConnection->executeQuery(
-            'SELECT COUNT(*) FROM users WHERE email = ? AND id <> ?',
-            [$email, $user_id]
-        )->fetch(\PDO::FETCH_ASSOC)['COUNT(*)'];
-
-        if ($email_duplicates > 0){
-            throw new \InvalidArgumentException('User with this email has already registered!');
-        }
-
-        $fio_duplicates = $this->dbConnection->executeQuery(
-            'SELECT COUNT(*) FROM users WHERE name = ? AND surname = ? AND company_id = ? AND id <> ?',
-            [$name, $surname, $company_id, $user_id]
-        )->fetch(\PDO::FETCH_ASSOC)['COUNT(*)'];
-
-        if ($fio_duplicates > 0){
-            throw new \InvalidArgumentException('User with this name in this company has already registered!');
-        }
-
-        if ($company_id != null && $email_duplicates == 0 && $fio_duplicates == 0) {
-            $salt = uniqid();
-            $password_hash = md5($password . $salt);
-            $this->dbConnection->executeQuery(
-                'UPDATE users 
-                       SET email = ?, 
-                           name = ?,
-                           surname = ?,
-                           password = ?,
-                           phone_number = ?,
-                           company_id = ?,
-                           salt = ?
-                      WHERE id = ?',
-                [
-                    $email,
-                    $name,
-                    $surname,
-                    $password_hash,
-                    $phone_number,
-                    $company_id,
-                    $salt,
-                    $user_id
-                ]
-            );
-            return true;
-        } else {
-            return false;
-        }
+        return $this->userRepository->UpdateUser($user);
     }
 
-    public function UserInfo($id)
+    /**
+     * @param $user_id int
+     * @return array
+     */
+    public function UserInfo($user_id)
     {
-        $row = $this->dbConnection->executeQuery(
-            'SELECT * FROM users, companies WHERE company_id = companies.id AND users.id = ?',
-            [
-                $id
-            ]
-        )->fetch(\PDO::FETCH_ASSOC);
+        $user = $this->userRepository->GetUser($user_id);
+
         return [
-            "email" => $row['email'],
-            "name" => $row['name'],
-            "surname" => $row['surname'],
-            "phone_number" => $row['phone_number'],
-            "company_name" => $row['company_name']
+            "email" => $user->getEmail(),
+            "name" => $user->getName(),
+            "surname" => $user->getSurname(),
+            "phone_number" => $user->getPhoneNumber(),
+            "company_name" => $user->getCompanyName()
         ];
     }
 }

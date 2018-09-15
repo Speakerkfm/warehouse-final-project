@@ -1,459 +1,337 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: usanin
- * Date: 07.09.2018
- * Time: 17:02
- */
 
 namespace App\Services;
 
-
 use App\Model\Warehouse;
+use App\Repository\TransactionRepository;
+use App\Repository\WarehouseRepository;
+use App\Repository\ProductRepository;
+use App\Repository\ProductsOnWarehouseRepository;
 use phpDocumentor\Reflection\DocBlock\Tags\Var_;
 
-class WarehouseService extends AbstractService
+class WarehouseService
 {
+    /**
+     * @var WarehouseRepository
+     */
+    private $warehouseRepository;
+
+    /**
+     * @var ProductRepository
+     */
+    private $productRepository;
+
+    /**
+     * @var TransactionRepository
+     */
+    private $transactionRepository;
+
+    /**
+     * @var ProductsOnWarehouseRepository
+     */
+    private $productOnWarehouseRepository;
+
+    public function __construct(WarehouseRepository $warehouseRepository,
+                                ProductRepository $productRepository,
+                                TransactionRepository $transactionRepository,
+                                ProductsOnWarehouseRepository $productOnWarehouseRepository)
+    {
+        $this->warehouseRepository = $warehouseRepository;
+        $this->productRepository = $productRepository;
+        $this->transactionRepository = $transactionRepository;
+        $this->productOnWarehouseRepository = $productOnWarehouseRepository;
+    }
+
     /**
      * @param $user_id int
      * @return Warehouse[]
      */
     public function GetWarehouseList($user_id)
     {
-        $warehouses = [];
-
-        $rows = $this->dbConnection->executeQuery(
-            'SELECT * FROM warehouses WHERE user_id = ?',
-            [$user_id]
-        );
-
-        while ($row = $rows->fetch(\PDO::FETCH_ASSOC)){
-            $warehouses[] = new Warehouse($row['id'], $row['address'], $row['capacity'], $row['total_size'], $row['balance']);
-        }
-
-        return $warehouses;
+        return $this->warehouseRepository->GetWarehouseList($user_id);
     }
 
+    /**
+     * @param $user_id int
+     * @param $warehouse_id int
+     * @return Warehouse Warehouse
+     */
     public function GetWarehouse($user_id, $warehouse_id)
     {
-        $row = $this->dbConnection->executeQuery(
-            'SELECT * FROM warehouses WHERE id = ?',
-            [$warehouse_id]
-        )->fetch(\PDO::FETCH_ASSOC);
+        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
 
-        if (!isset($row['id'])){
-            throw new \InvalidArgumentException('Warehouse does not exist!');
-        } elseif ($row['user_id'] != $user_id){
-            throw new \InvalidArgumentException('Wrong access!');
-        } else {
-            $warehouse = new Warehouse($row['id'], $row['address'], $row['capacity'], $row['total_size'], $row['balance']);
-        }
+        return $this->warehouseRepository->GetWarehouse($warehouse_id);
+    }
+
+    /**
+     * @param $user_id int
+     * @param $address string
+     * @param $capacity double
+     * @return Warehouse Warehouse
+     */
+    public function CreateWarehouse($user_id, $address, $capacity)
+    {
+        $this->warehouseRepository->CheckAddressDuplicates($address, 0);
+
+        return $this->warehouseRepository->CreateWarehouse($address, $capacity, $user_id);
+    }
+
+    /**
+     * @param $user_id int
+     * @param $warehouse_id int
+     * @param $address string
+     * @param $capacity double
+     * @return Warehouse Warehouse
+     */
+    public function UpdateWarehouse($user_id, $warehouse_id, $address, $capacity)
+    {
+        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
+        $this->warehouseRepository->CheckAddressDuplicates($address, $warehouse_id);
+
+        $warehouse = $this->warehouseRepository->GetWarehouse($warehouse_id);
+
+        $warehouse->setAddress($address);
+        $warehouse->setCapacity($capacity);
+
+        $this->warehouseRepository->UpdateWarehouse($warehouse);
 
         return $warehouse;
     }
 
-    public function CreateWarehouse($user_id, $address, $capacity)
-    {
-        $address_duplicates = $this->dbConnection->executeQuery(
-            'SELECT COUNT(*) FROM warehouses WHERE address = ?',
-            [$address]
-        )->fetch(\PDO::FETCH_ASSOC)['COUNT(*)'];
-
-        if ($address_duplicates > 0){
-            throw new \InvalidArgumentException('Warehouse with this address is already exist!');
-        } else {
-            $this->dbConnection->executeQuery(
-                'INSERT INTO warehouses (address, capacity, user_id) VALUES (?, ?, ?)',
-                [$address, $capacity, $user_id]
-            );
-        }
-
-        return $this->dbConnection->lastInsertId();
-    }
-
-    public function UpdateWarehouse($user_id, $warehouse_id, $address, $capacity)
-    {
-        $row = $this->dbConnection->executeQuery(
-            'SELECT * FROM warehouses WHERE id = ?',
-            [$warehouse_id]
-        )->fetch(\PDO::FETCH_ASSOC);
-
-        if (!isset($row['id'])){
-            throw new \InvalidArgumentException('Warehouse does not exist!');
-        } elseif ($row['user_id'] != $user_id){
-            throw new \InvalidArgumentException('Wrong access!');
-        } else {
-            $address_duplicates = $this->dbConnection->executeQuery(
-                'SELECT COUNT(*) FROM warehouses WHERE address = ? AND id <> ?',
-                [$address, $warehouse_id]
-            )->fetch(\PDO::FETCH_ASSOC)['COUNT(*)'];
-
-            if ($row['total_size'] > $capacity){
-                throw new \InvalidArgumentException(('Too much products to set this capacity'));
-            } elseif ($address_duplicates > 0) {
-                throw new \InvalidArgumentException('Warehouse with this address is already exist!');
-            } else {
-                $this->dbConnection->executeQuery(
-                    'UPDATE warehouses SET address = ?, capacity = ? WHERE id = ?',
-                    [$address, $capacity, $warehouse_id]
-                );
-                $result = 'Warehouse updated!';
-            }
-        }
-
-        return $result;
-    }
-
+    /**
+     * @param $user_id int
+     * @param $warehouse_id int
+     * @param $product_id int
+     * @param $count int
+     */
     public function AppProduct($user_id, $warehouse_id, $product_id, $count)
     {
-        $owner_id = $this->dbConnection->executeQuery(
-            'SELECT user_id FROM warehouses WHERE id = ?',
-            [$warehouse_id]
-        )->fetch(\PDO::FETCH_ASSOC)['user_id'];
+        $this->productRepository->CheckProduct($user_id, $product_id);
 
-        if ($owner_id != $user_id){
-            throw new \InvalidArgumentException('Wrong access!');
-        } else {
-            $product = $this->dbConnection->executeQuery(
-                'SELECT * FROM products WHERE id = ? AND  user_owner_id = ?',
-                [$product_id, $user_id]
-            )->fetch(\PDO::FETCH_ASSOC);
+        $product = $this->productRepository->GetProduct($product_id);
+        $product_full_size = $count * $product->getSize();
 
-            if (!isset($product['id'])){
-                throw new \InvalidArgumentException('Product does not exist '.$product_id);
-            } else {
-                $product_full_size = $count * $product['size'];
+        $warehouse = $this->warehouseRepository->GetWarehouse($warehouse_id);
+        $warehouse->CheckAvailableSize($product_full_size);
 
-                $available_size = $this->dbConnection->executeQuery(
-                    'SELECT (capacity - total_size) AS available_size FROM warehouses WHERE id = ?',
-                    [$warehouse_id]
-                )->fetch(\PDO::FETCH_ASSOC)['available_size'];
+        try {
+            $ProductOnWarehouse = $this->productOnWarehouseRepository->GetProductOnWarehouse($product_id, $warehouse_id);
 
-                if ($product_full_size > $available_size) {
-                    throw new \InvalidArgumentException('Not enough space on warehouse' . $warehouse_id);
-                } else {
-                    $current_count = $this->dbConnection->executeQuery(
-                        'SELECT count FROM products_on_warehouse WHERE product_id = ? AND warehouse_id = ?',
-                        [$product_id, $warehouse_id]
-                    )->fetch(\PDO::FETCH_ASSOC)['count'];
-                    if ($current_count > 0) {
-                        $this->dbConnection->executeQuery(
-                            'UPDATE products_on_warehouse SET count = count + ? WHERE product_id = ? AND warehouse_id = ?',
-                            [$count, $product_id, $warehouse_id]
-                        );
-                    } else {
-                        $this->dbConnection->executeQuery(
-                            'INSERT INTO products_on_warehouse (product_id, warehouse_id, count) VALUES (?, ?, ?)',
-                            [$product_id, $warehouse_id, $count]
-                        );
-                    }
-                }
-            }
+            $current_count = $ProductOnWarehouse->getCount();
+            $ProductOnWarehouse->setCount($current_count + $count);
+            $this->productOnWarehouseRepository->UpdateProductOnWarehouse($ProductOnWarehouse);
+        } catch (\InvalidArgumentException $e) {
+            $this->productOnWarehouseRepository->CreateProductOnWarehouse($product_id, $warehouse_id, $count);
         }
+
     }
 
+    /**
+     * @param $user_id int
+     * @param $warehouse_id int
+     * @param $product_id int
+     * @param $count int
+     */
     public function DetachProduct($user_id, $warehouse_id, $product_id, $count)
     {
-        $owner_id = $this->dbConnection->executeQuery(
-            'SELECT user_id FROM warehouses WHERE id = ?',
-            [$warehouse_id]
-        )->fetch(\PDO::FETCH_ASSOC)['user_id'];
+        $this->productRepository->CheckProduct($user_id, $product_id);
 
-        if ($owner_id != $user_id){
-            throw new \InvalidArgumentException('Wrong access!');
+        $ProductOnWarehouse = $this->productOnWarehouseRepository->GetProductOnWarehouse($product_id, $warehouse_id);
+        $ProductOnWarehouse->CheckAvailableCount($count);
+
+        if ($ProductOnWarehouse->getCount() > $count) {
+            $current_count = $ProductOnWarehouse->getCount();
+            $ProductOnWarehouse->setCount($current_count - $count);
+            $this->productOnWarehouseRepository->UpdateProductOnWarehouse($ProductOnWarehouse);
         } else {
-            $current_count = $this->dbConnection->executeQuery(
-                'SELECT count FROM products_on_warehouse WHERE product_id = ? AND warehouse_id = ?',
-                [$product_id, $warehouse_id]
-            )->fetch(\PDO::FETCH_ASSOC)['count'];
-
-            if ($current_count < $count){
-                throw new \InvalidArgumentException('Not enough products '.$product_id.' on warehouse '.$warehouse_id);
-            } elseif ($current_count > $count) {
-                $this->dbConnection->executeQuery(
-                    'UPDATE products_on_warehouse SET count = count - ? WHERE product_id = ? and warehouse_id = ?',
-                    [$count, $product_id, $warehouse_id]
-                );
-            } else {
-                $this->dbConnection->executeQuery(
-                    'DELETE FROM products_on_warehouse WHERE product_id = ? AND warehouse_id = ?',
-                    [$product_id, $warehouse_id]
-                );
-            }
+            $this->productOnWarehouseRepository->DeleteProductOnWarehouse($ProductOnWarehouse);
         }
+
     }
 
+    /**
+     * @param $user_id int
+     * @param $products_in_transaction array
+     * @param $warehouses array
+     * @param $movement_type string
+     */
     public function MoveProducts($user_id, $products_in_transaction, $warehouses, $movement_type)
     {
+        $this->warehouseRepository->CheckWarehousesInTransaction(
+            $user_id,
+            $warehouses['from'],
+            $warehouses['to'],
+            $movement_type
+        );
+
         try {
-            $this->dbConnection->beginTransaction();
-            try {
-                $this->dbConnection->executeQuery(
-                    'INSERT INTO transactions (warehouse_from_id, warehouse_to_id, movement_type) VALUES (?, ?, ?)',
-                    [$warehouses['from'], $warehouses['to'], $movement_type]
-                );
-                $transaction_id = $this->dbConnection->lastInsertId();
-            }catch (\Exception $e){
-                throw new \InvalidArgumentException('Warehouse does not exist123');
-            }
-            foreach ($products_in_transaction as $item) {
-                $product_id = $item['id'];
-                $count = $item['count'];
+            $this->transactionRepository->StartTransaction();
+
+            $transaction = $this->transactionRepository->CreateTransaction(
+                $warehouses['from'],
+                $warehouses['to'],
+                $movement_type
+            );
+
+            foreach ($products_in_transaction as $product) {
                 switch ($movement_type) {
                     case 'app':
-                        $this->AppProduct($user_id, $warehouses['to'], $product_id, $count);
+                        $this->AppProduct($user_id, $warehouses['to'], $product['id'], $product['count']);
                         break;
                     case 'detach':
-                        $this->DetachProduct($user_id, $warehouses['from'], $product_id, $count);
+                        $this->DetachProduct($user_id, $warehouses['from'], $product['id'], $product['count']);
                         break;
                     case 'move':
-                        if ($warehouses['from'] == $warehouses['to']){
-                            throw new \InvalidArgumentException('Warehouses are the same!');
-                        } else {
-                            $this->DetachProduct($user_id, $warehouses['from'], $product_id, $count);
-                            $this->AppProduct($user_id, $warehouses['to'], $product_id, $count);
-                        }
-                        break;
-                    default:
-                        throw new \InvalidArgumentException('Wrong movement type!');
+                        $this->DetachProduct($user_id, $warehouses['from'], $product['id'], $product['count']);
+                        $this->AppProduct($user_id, $warehouses['to'], $product['id'], $product['count']);
                         break;
                 }
-                $this->dbConnection->executeQuery(
-                    'INSERT INTO products_on_transaction (transaction_id, product_id, count) VALUES (?, ?, ?)',
-                    [$transaction_id, $product_id, $count]
-                );
+                $this->transactionRepository->AddProductToTransaction($transaction, $product['id'], $product['count']);
             }
-            $this->dbConnection->commit();
-        } catch (\Exception $e){
-            $this->dbConnection->rollBack();
-            throw $e;
+            $this->transactionRepository->CommitTransaction();
+        } catch (\Exception $e) {
+            $this->transactionRepository->RollbackTransaction();
+            throw new \InvalidArgumentException('Transaction failed: ' . $e->getMessage());
         }
     }
 
+    /**
+     * @param $user_id int
+     * @param $warehouse_id int
+     * @return array
+     */
     public function GetLogs($user_id, $warehouse_id)
     {
-        $row = $this->dbConnection->executeQuery(
-            'SELECT * FROM warehouses WHERE id = ?',
-            [$warehouse_id]
-        )->fetch(\PDO::FETCH_ASSOC);
+        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
 
+        $current_date = date('Y-m-d H:i:s');
+
+        $transactions = $this->transactionRepository->GetTransactionsOnWarehouse($warehouse_id, $current_date);
         $transactions_list = [];
 
-        if ($row['user_id'] != $user_id){
-            throw new \InvalidArgumentException('Wrong access!');
-        } else {
-            $transactions = $this->dbConnection->executeQuery(
-                'SELECT * FROM transactions WHERE warehouse_from_id = ? OR warehouse_to_id = ?',
-                [$warehouse_id, $warehouse_id]
-            );
 
-            while($transaction = $transactions->fetch(\PDO::FETCH_ASSOC)){
-                $products = $this->dbConnection->executeQuery(
-                    'SELECT * FROM products_on_transaction WHERE transaction_id = ?',
-                    [$transaction['id']]
-                );
+        foreach ($transactions as $transaction) {
+            $products_list = $this->transactionRepository->GetProductList($transaction);
 
-                $products_list = [];
-
-                while($product = $products->fetch(\PDO::FETCH_ASSOC)){
-                    $products_list[] = [
-                        'id' => $product['product_id'],
-                        'count' => $product['count'],
-                        'amount' => $product['amount']
-                    ];
-                }
-
-                switch ($transaction['movement_type']){
-                    case 'app':
-                        $transactions_list[] = [
-                            'id' => $transaction['id'],
-                            'movement_type' => $transaction['movement_type'],
-                            'warehouse_id' => $transaction['warehouse_to_id'],
-                            'date' => $transaction['date'],
-                            'balance' => $transaction['balance_to'],
-                            'products' => $products_list
-                            ];
-                        break;
-                    case 'detach':
-                        $transactions_list[] = [
-                            'id' => $transaction['id'],
-                            'movement_type' => $transaction['movement_type'],
-                            'warehouse_id' => $transaction['warehouse_from_id'],
-                            'date' => $transaction['date'],
-                            'balance' => $transaction['balance_from'],
-                            'products' => $products_list
-                        ];
-                        break;
-                    case 'move':
-                        $transactions_list[] = [
-                            'id' => $transaction['id'],
-                            'movement_type' => $transaction['movement_type'],
-                            'warehouse_from_id' => $transaction['warehouse_from_id'],
-                            'warehouse_to_id' => $transaction['warehouse_to_id'],
-                            'date' => $transaction['date'],
-                            'balance_from' => $transaction['balance_from'],
-                            'balance_to' => $transaction['balance_to'],
-                            'products' => $products_list
-                        ];
-                        break;
-                }
-            }
+            $transactions_list[] = $transaction->GetData($products_list);
         }
 
         return $transactions_list;
     }
 
+    /**
+     * @param $user_id int
+     * @param $warehouse_id int
+     */
     public function DeleteWarehouse($user_id, $warehouse_id)
     {
-        $row = $this->dbConnection->executeQuery(
-            'SELECT * FROM warehouses WHERE id = ?',
-            [$warehouse_id]
-        )->fetch(\PDO::FETCH_ASSOC);
+        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
 
-        if ($row['user_id'] != $user_id){
-            throw new \InvalidArgumentException('Wrong access!');
-        } else {
-            $movements_count = $this->dbConnection->executeQuery(
-                'SELECT COUNT(*) FROM transactions
-                        WHERE warehouse_from_id = ? OR warehouse_to_id = ?',
-                [$warehouse_id, $warehouse_id]
-            )->fetch(\PDO::FETCH_ASSOC)['COUNT(*)'];
-
-            if ($movements_count > 0){
-                throw new \InvalidArgumentException('You can not delete warehouse which has logs');
-            } else {
-                $filled_warehouses_count = $this->dbConnection->executeQuery(
-                    'SELECT COUNT(*) FROM products_on_warehouse WHERE warehouse_id = ?',
-                    [$warehouse_id]
-                )->fetch(\PDO::FETCH_ASSOC)['COUNT(*)'];
-
-                if ($filled_warehouses_count > 0){
-                    throw new \InvalidArgumentException('You can not delete warehouse which has products!');
-                } else {
-                    $this->dbConnection->executeQuery(
-                        'DELETE FROM warehouses WHERE id = ?',
-                        [$warehouse_id]
-                    );
-                }
-            }
-        }
+        $this->transactionRepository->CheckWarehouseLogs($warehouse_id);
+        $this->warehouseRepository->DeleteWarehouse($warehouse_id);
     }
 
+    /**
+     * @param $user_id int
+     * @param $warehouse_id int
+     * @return array
+     */
     public function GetProductsList($user_id, $warehouse_id)
     {
-        $row = $this->dbConnection->executeQuery(
-            'SELECT * FROM warehouses WHERE id = ?',
-            [$warehouse_id]
-        )->fetch(\PDO::FETCH_ASSOC);
+        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
 
-        if ($row['user_id'] != $user_id){
-            throw new \InvalidArgumentException('Wrong access!');
-        } else {
-            $products_list = [];
+        $warehouse = $this->warehouseRepository->GetWarehouse($warehouse_id);
+        $products_list = $this->productOnWarehouseRepository->GetProductList($warehouse);
 
-            $products = $this->dbConnection->executeQuery(
-                'SELECT * FROM products_on_warehouse  WHERE warehouse_id =?',
-                [$warehouse_id]
-            );
-
-            while ($product = $products->fetch(\PDO::FETCH_ASSOC)) {
-                $products_list[] = [
-                    'id' => $product['product_id'],
-                    'count' => $product['count']
-                ];
-            }
-
-            $balance = $row['balance'];
-        }
         $jsonResult = [
-            'balance' => $balance,
+            'balance' => $warehouse->getBalance(),
             'products_list' => $products_list
         ];
 
         return $jsonResult;
     }
 
+    /**
+     * @param $transaction_product_list array
+     * @param $product_list array
+     */
+    public function AppProductList(&$product_list, $transaction_product_list)
+    {
+        foreach (array_keys($transaction_product_list) as $key){
+            $product_list[$key] += $transaction_product_list[$key]['count'];
+        }
+    }
+
+    /**
+     * @param $transaction_products_list array
+     * @param $products_list array
+     */
+    public function DetachProductList(&$products_list, $transaction_products_list)
+    {
+        foreach (array_keys($transaction_products_list) as $key){
+            $products_list[$key] -= $transaction_products_list[$key]['count'];
+        }
+    }
+
+    /**
+     * @param $products_list array
+     */
+    public function UnsetZeroProductList(&$products_list)
+    {
+        foreach (array_keys($products_list) as $key) {
+            if ($products_list[$key] == 0) {
+                unset($products_list[$key]);
+            }
+        }
+    }
+
+    /**
+     * @param $user_id int
+     * @param $warehouse_id int
+     * @param $date \DateTime
+     * @return array
+     */
     public function GetProductListOnDate($user_id, $warehouse_id, $date)
     {
-        $row = $this->dbConnection->executeQuery(
-            'SELECT * FROM warehouses WHERE id = ?',
-            [$warehouse_id]
-        )->fetch(\PDO::FETCH_ASSOC);
+        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
 
-        if ($row['user_id'] != $user_id){
-            throw new \InvalidArgumentException('Wrong access!');
-        } else {
-            $products = $this->dbConnection->executeQuery(
-                'SELECT * FROM products WHERE user_owner_id = ?',
-                [$user_id]
-            );
+        $products_list = $this->productRepository->GetDefaultProductList($user_id);
 
-            $products_list = [];
+        $transactions = $this->transactionRepository->GetTransactionsOnWarehouse($warehouse_id, $date);
 
-            while ($product = $products->fetch(\PDO::FETCH_ASSOC)) {
-                $products_list[$product['id']] = 0;
+        $balance = 0;
+
+        foreach ($transactions as $transaction) {
+            $transaction_products_list = $this->transactionRepository->GetProductList($transaction);
+
+            switch ($transaction->getMovementType()) {
+                case 'app':
+                    $this->AppProductList($products_list, $transaction_products_list);
+                    $balance += $transaction->getTotalCount();
+                    break;
+                case 'detach':
+                    $this->DetachProductList($products_list, $transaction_products_list);
+                    $balance -= $transaction->getTotalCount();
+                    break;
+                case 'move':
+                    if ($transaction->getWarehouseToId() == $warehouse_id) {
+                        $this->AppProductList($products_list, $transaction_products_list);
+                        $balance += $transaction->getTotalCount();
+                    } elseif ($transaction->getWarehouseFromId() == $warehouse_id) {
+                        $this->DetachProductList($products_list, $transaction_products_list);
+                        $balance -= $transaction->getTotalCount();
+                    }
+                    break;
             }
-
-            $transactions = $this->dbConnection->executeQuery(
-                'SELECT * FROM transactions WHERE (warehouse_to_id = ? OR warehouse_from_id = ?) AND date <= ?',
-                [$warehouse_id, $warehouse_id, $date]
-            );
-
-            while ($transaction = $transactions->fetch(\PDO::FETCH_ASSOC)){
-                $products = $this->dbConnection->executeQuery(
-                    'SELECT * FROM products_on_transaction WHERE transaction_id = ?',
-                    [$transaction['id']]
-                );
-
-                switch ($transaction['movement_type']) {
-                    case 'app':
-                        while ($product = $products->fetch(\PDO::FETCH_ASSOC)) {
-                            $products_list[$product['product_id']] += $product['count'];
-                        }
-                        break;
-                    case 'detach':
-                        while ($product = $products->fetch(\PDO::FETCH_ASSOC)) {
-                            $products_list[$product['product_id']] -= $product['count'];
-                        }
-                        break;
-                    case 'move':
-                        if ($transaction['warehouse_to_id'] == $warehouse_id){
-                            while ($product = $products->fetch(\PDO::FETCH_ASSOC)) {
-                                $products_list[$product['product_id']] += $product['count'];
-                            }
-                        } else {
-                            while ($product = $products->fetch(\PDO::FETCH_ASSOC)) {
-                                $products_list[$product['product_id']] -= $product['count'];
-                            }
-                        }
-                        break;
-                }
-
-                $last_transaction = $transaction;
-            }
-
-            if (isset($last_transaction)) {
-                if ($last_transaction['warehouse_to_id'] == $warehouse_id) {
-                    $balance = $last_transaction['balance_to'];
-                } else {
-                    $balance = $last_transaction['balance_from'];
-                }
-            } else {
-                $balance = 0;
-            }
-
-            foreach (array_keys($products_list) as $key){
-                if ($products_list[$key] == 0){
-                    unset($products_list[$key]);
-                }
-            }
-
-            $jsonResult = [
-                'balance' => $balance,
-                'products' => $products_list
-            ];
-
-            return $jsonResult;
         }
+
+        $this->UnsetZeroProductList($products_list);
+
+        $jsonResult = [
+            'balance' => $balance,
+            'products' => $products_list
+        ];
+
+        return $jsonResult;
     }
 }

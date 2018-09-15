@@ -211,8 +211,7 @@ create table transactions
   warehouse_to_id   int                                null,
   movement_type     varchar(45)                        not null,
   date              datetime default CURRENT_TIMESTAMP not null,
-  balance_from      double default '0'                 null,
-  balance_to        double default '0'                 null,
+  total_count       double default '0'                 null,
   constraint products_transactions_id_uindex
   unique (id),
   constraint products_movements_warehouses_id_fk
@@ -249,146 +248,14 @@ create trigger transaction_amount_counter
     SET NEW.amount = (NEW.count) * (SELECT price FROM products WHERE id = NEW.product_id);
   END;
 
-create trigger transaction_balance_from_counter
+create trigger transaction_total_counter
   after INSERT
   on products_on_transaction
   for each row
   BEGIN
-    DECLARE `@wh_id` int;
-    DECLARE `@balance` double;
-    SET `@wh_id` = (SELECT warehouse_from_id FROM transactions WHERE id = NEW.transaction_id);
-    SET `@balance` = (SELECT balance FROM warehouses WHERE id = `@wh_id`);
-    UPDATE transactions SET balance_from = `@balance` WHERE id = NEW.transaction_id;
-  END;
-
-create trigger transaction_balance_to_counter
-  after INSERT
-  on products_on_transaction
-  for each row
-  BEGIN
-    DECLARE `@wh_id` int;
-    DECLARE `@balance` double;
-    SET `@wh_id` = (SELECT warehouse_to_id FROM transactions WHERE id = NEW.transaction_id);
-    SET `@balance` = (SELECT balance FROM warehouses WHERE id = `@wh_id`);
-    UPDATE transactions SET balance_to = `@balance` WHERE id = NEW.transaction_id;
-  END;
-
-create procedure app_product(IN `@user_id`    int, IN `@product_id` int, IN `@warehouse_id` int, IN `@count` int,
-  INOUT                         `@error_code` int)
-  BEGIN
-    DECLARE `@owner_id` int;
-    SET `@owner_id` = (SELECT `user_id` FROM `warehouses` WHERE `id` = `@warehouse_id`);
-    IF `@user_id` = `@owner_id`
-    THEN
-      BEGIN
-        DECLARE `@size` double;
-        SET `@size` = (SELECT `@count` * size FROM products WHERE id = `@product_id`);
-        if `@size` <= (SELECT capacity - total_size FROM warehouses WHERE id = `@warehouse_id`)
-        THEN
-          BEGIN
-            DECLARE `@cnt` int;
-            SET `@cnt` = (SELECT `count`
-                          FROM `products_on_warehouse`
-                          WHERE `product_id` = `@product_id`
-                            AND `warehouse_id` = `@warehouse_id`);
-            if `@cnt` > 0
-            THEN
-              BEGIN
-                UPDATE `products_on_warehouse`
-                SET `count` = `count` + `@count`
-                WHERE `product_id` = `@product_id`
-                  AND `warehouse_id` = `@warehouse_id`;
-              END;
-            ELSE
-              BEGIN
-                INSERT `products_on_warehouse` VALUES (`@product_id`, `@warehouse_id`, `@count`);
-              END;
-            END IF;
-          END;
-        ELSE
-          SET `@error_code` = 3;
-        end if;
-      END;
-    ELSE
-      BEGIN
-        SET `@error_code` = 1;
-      END;
-    END IF;
-  end;
-
-create procedure detach_product(IN `@user_id`    int, IN `@product_id` int, IN `@warehouse_id` int, IN `@count` int,
-  INOUT                            `@error_code` int)
-  BEGIN
-    DECLARE `@owner_id` int;
-    SET `@owner_id` = (SELECT `user_id` FROM `warehouses` WHERE `id` = `@warehouse_id`);
-    IF `@user_id` = `@owner_id`
-    THEN
-      BEGIN
-        DECLARE `@cnt` int;
-        SET `@cnt` = (SELECT `count`
-                      FROM `products_on_warehouse`
-                      WHERE `product_id` = `@product_id`
-                        AND `warehouse_id` = `@warehouse_id`);
-        if `@cnt` > `@count`
-        THEN
-          BEGIN
-            UPDATE `products_on_warehouse`
-            SET `count` = `count` - `@count`
-            WHERE `product_id` = `@product_id`
-              AND `warehouse_id` = `@warehouse_id`;
-          END;
-        ELSEIF `@cnt` = `@count`
-          THEN
-            BEGIN
-              DELETE
-              FROM `products_on_warehouse`
-              WHERE `product_id` = `@product_id`
-                AND `warehouse_id` = `@warehouse_id`;
-            END;
-        ELSE
-          BEGIN
-            SET `@error_code` = 2;
-          END;
-        END IF;
-      END;
-    ELSE
-      BEGIN
-        SET `@error_code` = 1;
-      END;
-    END IF;
-  end;
-
-create procedure move_products(IN `@user_id`         int, IN `@product_id` int, IN `@warehouse_from_id` int,
-                               IN `@warehouse_to_id` int, IN `@count` int, IN `@movement_type` int)
-  BEGIN
-    DECLARE `@error_code` int;
-    SET `@error_code` = 0;
-    CASE `@movement_type`
-      WHEN 1
-      THEN
-        BEGIN
-          CALL detach_product(`@user_id`, `@product_id`, `@warehouse_from_id`, `@count`, `@error_code`);
-        END;
-      WHEN 2
-      THEN
-        BEGIN
-          CALL app_product(`@user_id`, `@product_id`, `@warehouse_to_id`, `@count`, `@error_code`);
-        end;
-      WHEN 3
-      THEN
-        BEGIN
-          START TRANSACTION;
-          CALL detach_product(`@user_id`, `@product_id`, `@warehouse_from_id`, `@count`, `@error_code`);
-          CALL app_product(`@user_id`, `@product_id`, `@warehouse_to_id`, `@count`, `@error_code`);
-          IF `@error_code` = 0
-          THEN
-            COMMIT;
-          ELSE
-            ROLLBACK;
-          end if;
-        end;
-    END CASE;
-    SELECT `@error_code`;
+    DECLARE `@total_count` double;
+    SET `@total_count` = (SELECT SUM(amount) FROM products_on_transaction WHERE transaction_id = NEW.transaction_id);
+    UPDATE transactions SET total_count = `@total_count` WHERE id = NEW.transaction_id;
   END;
 
 

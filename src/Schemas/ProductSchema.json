@@ -1,0 +1,31 @@
+{
+  "title": "ProductSchema",
+  "description": "Schema for product",
+  "type": "array",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 30,
+      "pattern": "^[a-zA-Z0-9]{3,30}$"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMinimum": true
+    },
+    "size": {
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMinimum": true
+    },
+    "type_name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 30,
+      "pattern": "^[a-zA-Z0-9]{3,30}$"
+    }
+  },
+
+  "require": ["name", "price", "size", "type_name"]
+}
