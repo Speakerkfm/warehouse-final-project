@@ -1,14 +1,12 @@
 {
-  "title": "IdSchema",
-  "description": "Schema for any id",
   "type": "array",
   "properties": {
     "id": {
       "type": "integer",
       "minimum": 0,
-      "exclusiveMinimum": true
+      "exclusiveMinimum": true,
+      "required": true
     }
   },
-
-  "require": ["id"]
+  "additionalProperties": false
 }

@@ -1,20 +1,19 @@
 {
-  "title": "WarehouseSchema",
-  "description": "Schema for warehouse",
   "type": "array",
   "properties": {
     "address": {
       "type": "string",
       "minLength": 3,
       "maxLength": 30,
-      "pattern": "^[a-zA-Z0-9,.]{3,30}$"
+      "pattern": "^[a-zA-Z0-9,.]{3,30}$",
+      "required": true
     },
     "capacity": {
       "type": "number",
       "minimum": 0,
-      "exclusiveMinimum": true
+      "exclusiveMinimum": true,
+      "required": true
     }
   },
-
-  "require": ["address", "capacity"]
+  "additionalProperties": false
 }

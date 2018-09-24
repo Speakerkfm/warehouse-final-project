@@ -1,45 +1,51 @@
 {
   "title": "RegisterSchema",
   "description": "Schema for register user",
+  "required": ["email", "name", "surname", "password", "phone_number", "company_name"],
   "type": "array",
   "properties": {
     "email": {
       "type": "string",
       "minLength": 3,
       "maxLength": 30,
-      "pattern": "^[a-zA-Z0-9@.]{3,30}$"
+      "pattern": "^[a-zA-Z0-9@.]{3,30}$",
+      "required": true
     },
     "name": {
       "type": "string",
       "minLength": 3,
       "maxLength": 30,
-      "pattern": "^[a-zA-Z0-9]{3,30}$"
+      "pattern": "^[a-zA-Z0-9]{3,30}$",
+      "required": true
     },
     "surname": {
       "type": "string",
       "minLength": 3,
       "maxLength": 30,
-      "pattern": "^[a-zA-Z0-9]{3,30}$"
+      "pattern": "^[a-zA-Z0-9]{3,30}$",
+      "required": true
     },
     "password": {
       "type": "string",
       "minLength": 6,
       "maxLength": 30,
-      "pattern": "^[a-zA-Z0-9]{6,30}$"
+      "pattern": "^[a-zA-Z0-9]{6,30}$",
+      "required": true
     },
     "phone_number": {
       "type": "string",
       "minLength": 3,
       "maxLength": 30,
-      "pattern": "^\\+?[0-9]{11}$"
+      "pattern": "^\\+?[0-9]{11}$",
+      "required": true
     },
     "company_name": {
       "type": "string",
       "minLength": 3,
       "maxLength": 30,
-      "pattern": "^[a-zA-Z0-9]{3,30}$"
+      "pattern": "^[a-zA-Z0-9]{3,30}$",
+      "required": true
     }
   },
-
-  "required": ["email", "name", "surname", "password", "phone_number", "company_name"]
+  "additionalProperties": false
 }

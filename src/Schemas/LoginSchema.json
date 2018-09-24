@@ -7,15 +7,16 @@
       "type": "string",
       "minLength": 3,
       "maxLength": 30,
-      "pattern": "^[a-zA-Z0-9@.]{3,30}$"
+      "pattern": "^[a-zA-Z0-9@.]{3,30}$",
+      "required": true
     },
     "password": {
       "type": "string",
       "minLength": 3,
       "maxLength": 30,
-      "pattern": "^[a-zA-Z0-9]{3,30}$"
+      "pattern": "^[a-zA-Z0-9]{3,30}$",
+      "required": true
     }
   },
-
-  "required": ["email", "password"]
+  "additionalProperties": false
 }

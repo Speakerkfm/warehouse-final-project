@@ -27,17 +27,24 @@ class ProductRepository extends AbstractRepository
     }
 
     /**
+     * @param $user_id int
      * @param $product_id int
      * @return Product|null
      * @throws
      */
-    public function GetProduct($product_id)
+    public function GetProduct($user_id, $product_id)
     {
         $row = $this->dbConnection->fetchAssoc(
             'SELECT products.id as product_id, name, price, size, types.id as type_id, type_name, user_owner_id
                        FROM products, types WHERE products.id = ? AND types.id = type_id',
             [$product_id]
         );
+        if (!isset($row['product_id'])){
+            throw new \InvalidArgumentException('Product does not exist '.$product_id);
+        }
+        if ($row['user_owner_id'] != $user_id){
+            throw new \InvalidArgumentException('Wrong access '.$product_id);
+        }
 
         return $row['product_id'] != null ?
             new Product(

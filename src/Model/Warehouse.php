@@ -117,7 +117,7 @@ class Warehouse
         $available_size = $this->capacity - $this->total_size;
 
         if ($product_size > $available_size) {
-            throw new \InvalidArgumentException('Not enough space on warehouse' . $this->id);
+            throw new \InvalidArgumentException('Not enough space on warehouse ' . $this->id);
         }
     }
 

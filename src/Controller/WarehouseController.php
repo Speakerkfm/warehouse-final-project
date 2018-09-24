@@ -134,7 +134,21 @@ class WarehouseController extends AbstractController
             $bodyParams['product_list'] = json_decode($bodyParams['product_list'], true);
             $bodyParams['warehouses'] = json_decode($bodyParams['warehouses'], true);
 
-            $this->Validation($bodyParams, 'MoveProductSchema.json', Constraint::CHECK_MODE_COERCE_TYPES);
+            switch ($bodyParams['movement_type']){
+                case 'move':
+                    $schema = 'MoveProductSchema.json';
+                    break;
+                case 'app':
+                    $schema = 'AppProductSchema.json';
+                    break;
+                case 'detach':
+                    $schema = 'DetachProductSchema.json';
+                    break;
+                default:
+                    return $response->withStatus(400, 'Wrong type!');
+            }
+
+            $this->Validation($bodyParams, $schema, Constraint::CHECK_MODE_COERCE_TYPES);
 
             $product_list = $bodyParams['product_list'];
             $movement_type = $bodyParams['movement_type'];

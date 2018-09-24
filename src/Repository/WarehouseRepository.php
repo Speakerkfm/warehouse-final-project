@@ -51,6 +51,7 @@ class WarehouseRepository extends AbstractRepository
      */
     public function CheckWarehousesInTransaction($user_id, $warehouse_from_id, $warehouse_to_id, $movement_type)
     {
+        /**
         switch ($movement_type){
             case 'app':
                 $this->CheckWarehouse($user_id, $warehouse_to_id);
@@ -63,22 +64,31 @@ class WarehouseRepository extends AbstractRepository
                 $this->CheckWarehouse($user_id, $warehouse_to_id);
                 break;
         }
+         */
         if ($warehouse_from_id == $warehouse_to_id) {
             throw new \InvalidArgumentException('Warehouses are the same!');
         }
     }
 
     /**
+     * @param $user_id
      * @param $warehouse_id int
      * @return Warehouse
      * @throws
      */
-    public function GetWarehouse($warehouse_id)
+    public function GetWarehouse($user_id, $warehouse_id)
     {
         $row = $this->dbConnection->fetchAssoc(
             'SELECT * FROM warehouses WHERE id = ?',
             [$warehouse_id]
         );
+
+        if (!isset($row['id'])){
+            throw new \InvalidArgumentException('Warehouse does not exist '.$warehouse_id);
+        }
+        if ($row['user_id'] != $user_id){
+            throw new \InvalidArgumentException('Wrong access '.$warehouse_id);
+        }
 
         return $row['id'] !== null ?
             new Warehouse($row['id'], $row['address'], $row['capacity'], $row['user_id'], $row['total_size'], $row['balance']) :

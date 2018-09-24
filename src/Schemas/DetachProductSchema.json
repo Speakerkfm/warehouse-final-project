@@ -5,7 +5,7 @@
   "properties": {
     "movement_type": {
       "type": "string",
-      "enum": ["move"],
+      "enum": ["detach"],
       "required": true
     },
     "product_list": {
@@ -16,12 +16,6 @@
     "warehouses": {
       "type": "array",
       "properties": {
-        "to": {
-          "type": "integer",
-          "minimum": 0,
-          "exclusiveMinimum": true,
-          "required": true
-        },
         "from": {
           "type": "integer",
           "minimum": 0,

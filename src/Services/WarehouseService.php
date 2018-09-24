@@ -58,9 +58,7 @@ class WarehouseService
      */
     public function GetWarehouse($user_id, $warehouse_id)
     {
-        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
-
-        return $this->warehouseRepository->GetWarehouse($warehouse_id);
+        return $this->warehouseRepository->GetWarehouse($user_id, $warehouse_id);
     }
 
     /**
@@ -85,10 +83,9 @@ class WarehouseService
      */
     public function UpdateWarehouse($user_id, $warehouse_id, $address, $capacity)
     {
-        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
-        $this->warehouseRepository->CheckAddressDuplicates($address, $warehouse_id);
+        $warehouse = $this->warehouseRepository->GetWarehouse($user_id, $warehouse_id);
 
-        $warehouse = $this->warehouseRepository->GetWarehouse($warehouse_id);
+        $this->warehouseRepository->CheckAddressDuplicates($address, $warehouse_id);
 
         $warehouse->setAddress($address);
         $warehouse->setCapacity($capacity);
@@ -106,12 +103,11 @@ class WarehouseService
      */
     public function AppProduct($user_id, $warehouse_id, $product_id, $count)
     {
-        $this->productRepository->CheckProduct($user_id, $product_id);
+        $product = $this->productRepository->GetProduct($user_id, $product_id);
 
-        $product = $this->productRepository->GetProduct($product_id);
         $product_full_size = $count * $product->getSize();
 
-        $warehouse = $this->warehouseRepository->GetWarehouse($warehouse_id);
+        $warehouse = $this->warehouseRepository->GetWarehouse($user_id, $warehouse_id);
         $warehouse->CheckAvailableSize($product_full_size);
 
         try {
@@ -119,6 +115,7 @@ class WarehouseService
 
             $current_count = $ProductOnWarehouse->getCount();
             $ProductOnWarehouse->setCount($current_count + $count);
+
             $this->productOnWarehouseRepository->UpdateProductOnWarehouse($ProductOnWarehouse);
         } catch (\InvalidArgumentException $e) {
             $this->productOnWarehouseRepository->CreateProductOnWarehouse($product_id, $warehouse_id, $count);
@@ -134,7 +131,8 @@ class WarehouseService
      */
     public function DetachProduct($user_id, $warehouse_id, $product_id, $count)
     {
-        $this->productRepository->CheckProduct($user_id, $product_id);
+        $this->productRepository->GetProduct($user_id, $product_id);
+        $this->warehouseRepository->GetWarehouse($user_id, $warehouse_id);
 
         $ProductOnWarehouse = $this->productOnWarehouseRepository->GetProductOnWarehouse($product_id, $warehouse_id);
         $ProductOnWarehouse->CheckAvailableCount($count);
@@ -238,9 +236,7 @@ class WarehouseService
      */
     public function GetProductsList($user_id, $warehouse_id)
     {
-        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
-
-        $warehouse = $this->warehouseRepository->GetWarehouse($warehouse_id);
+        $warehouse = $this->warehouseRepository->GetWarehouse($user_id, $warehouse_id);
         $products_list = $this->productOnWarehouseRepository->GetProductList($warehouse);
 
         $jsonResult = [
