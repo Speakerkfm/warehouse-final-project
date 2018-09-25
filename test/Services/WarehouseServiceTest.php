@@ -914,4 +914,576 @@ class WarehouseServiceTest extends \PHPUnit\Framework\TestCase
             ]
         ];
     }
+
+    /**
+     * @dataProvider dataGetLogs
+     */
+    public function testGetLogs($user_id, $warehouse_id, $warehouse_checked,
+                                $warehouse_data, $transactions, $expected, $allOK, $error_type = '')
+    {
+        $idx = 0;
+        $current_date = date('Y-m-d H:i:s');
+
+        $this->dbConnectionMock->expects($this->at($idx++))
+            ->method('fetchAssoc')
+            ->with('SELECT * FROM warehouses WHERE id = ?',
+                [$warehouse_id])
+            ->will($this->returnValue($warehouse_data));
+
+        if ($warehouse_checked) {
+
+            $QueryTransactionMock = $this->getMockBuilder('\PDOStatement')
+                ->getMock();
+
+            for ($i = 0; $i <= count($transactions); $i++) {
+                $QueryTransactionMock->expects($this->at($i))
+                    ->method('fetch')
+                    ->will($this->returnValue($transactions[$i]));
+            }
+
+            $this->dbConnectionMock->expects($this->at($idx++))
+                ->method('executeQuery')
+                ->with('SELECT * FROM transactions 
+                   WHERE (warehouse_from_id = ? OR warehouse_to_id = ?) AND date <= ?',
+                    [$warehouse_id, $warehouse_id, $current_date])
+                ->will($this->returnValue($QueryTransactionMock));
+
+            for ($i = 0; $i < count($transactions); $i++) {
+                $QueryProductMock = $this->getMockBuilder('\PDOStatement')
+                    ->getMock();
+
+                for ($j = 0; $j <= count($transactions[$i]['products']); $j++) {
+                    $QueryProductMock->expects($this->at($j))
+                        ->method('fetch')
+                        ->will($this->returnValue($transactions[$i]['products'][$j]));
+                }
+
+                $this->dbConnectionMock->expects($this->at($idx++))
+                    ->method('executeQuery')
+                    ->with('SELECT * FROM products_on_transaction WHERE transaction_id = ?',
+                        [$transactions[$i]['id']])
+                    ->will($this->returnValue($QueryProductMock));
+            }
+        }
+
+        if (!$allOK)
+            $this->expectExceptionMessage($error_type);
+
+        $logs = $this->warehouseService->GetLogs($user_id, $warehouse_id);
+
+        if ($allOK)
+            $this->assertEquals($logs, $expected);
+    }
+
+    public function dataGetLogs()
+    {
+        return [
+            [
+                1, 1, true, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '0', 'total_size' => '0'],
+                [['id' => 1, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-09', 'total_count' => 100,
+                    'products' => [['product_id' => 1,  'count' => 5, 'amount' => 100]]]],
+                [['id' => 1, 'movement_type' => 'app', 'warehouse_id' => 1, 'date' => '2018-08-09', 'total_count' => 100,
+                    'product_list' => [1 => ['count' => 5, 'amount' => 100]]]], true
+            ],
+            [
+                1, 1, true, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '0', 'total_size' => '0'],
+                [
+                    ['id' => 1, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-09', 'total_count' => 100,
+                    'products' =>
+                        [
+                            ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                            ['product_id' => 2,  'count' => 7, 'amount' => 150]
+                        ]
+                    ]
+                ],
+                [
+                    ['id' => 1, 'movement_type' => 'app', 'warehouse_id' => 1, 'date' => '2018-08-09', 'total_count' => 100,
+                    'product_list' => [
+                        1 => ['count' => 5, 'amount' => 100],
+                        2 => ['count' => 7, 'amount' => 150]]
+                    ]
+                ], true
+            ],
+            [
+                1, 1, true, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '0', 'total_size' => '0'],
+                [
+                    ['id' => 1, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-09', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150]
+                            ]
+                    ],
+                    ['id' => 2, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-10', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150]
+                            ]
+                    ]
+                ],
+                [
+                    ['id' => 1, 'movement_type' => 'app', 'warehouse_id' => 1, 'date' => '2018-08-09', 'total_count' => 100,
+                        'product_list' => [
+                            1 => ['count' => 5, 'amount' => 100],
+                            2 => ['count' => 7, 'amount' => 150]]
+                    ],
+                    ['id' => 2, 'movement_type' => 'app', 'warehouse_id' => 1, 'date' => '2018-08-10', 'total_count' => 100,
+                        'product_list' => [
+                            1 => ['count' => 5, 'amount' => 100],
+                            2 => ['count' => 7, 'amount' => 150]]
+                    ]
+                ], true
+            ],
+            [
+                1, 1, true, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '0', 'total_size' => '0'],
+                [
+                    ['id' => 1, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-09', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150]
+                            ]
+                    ],
+                    ['id' => 2, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-10', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150]
+                            ]
+                    ],
+                    ['id' => 3, 'warehouse_from_id' => 1, 'warehouse_to_id' => null, 'movement_type' => 'detach', 'date' => '2018-08-10', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100]
+                            ]
+                    ]
+                ],
+                [
+                    ['id' => 1, 'movement_type' => 'app', 'warehouse_id' => 1, 'date' => '2018-08-09', 'total_count' => 100,
+                        'product_list' => [
+                            1 => ['count' => 5, 'amount' => 100],
+                            2 => ['count' => 7, 'amount' => 150]]
+                    ],
+                    ['id' => 2, 'movement_type' => 'app', 'warehouse_id' => 1, 'date' => '2018-08-10', 'total_count' => 100,
+                        'product_list' => [
+                            1 => ['count' => 5, 'amount' => 100],
+                            2 => ['count' => 7, 'amount' => 150]]
+                    ],
+                    ['id' => 3, 'movement_type' => 'detach', 'warehouse_id' => 1, 'date' => '2018-08-10', 'total_count' => 100,
+                        'product_list' => [
+                            1 => ['count' => 5, 'amount' => 100]]
+                    ]
+                ], true
+            ],
+            [
+                1, 1, true, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '0', 'total_size' => '0'],
+                [
+                    ['id' => 1, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-09', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150]
+                            ]
+                    ],
+                    ['id' => 2, 'warehouse_from_id' => 2, 'warehouse_to_id' => 1, 'movement_type' => 'move', 'date' => '2018-08-10', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150],
+                                ['product_id' => 3,  'count' => 1, 'amount' => 90]
+                            ]
+                    ],
+                    ['id' => 3, 'warehouse_from_id' => 1, 'warehouse_to_id' => null, 'movement_type' => 'detach', 'date' => '2018-08-10', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100]
+                            ]
+                    ]
+                ],
+                [
+                    ['id' => 1, 'movement_type' => 'app', 'warehouse_id' => 1, 'date' => '2018-08-09', 'total_count' => 100,
+                        'product_list' => [
+                            1 => ['count' => 5, 'amount' => 100],
+                            2 => ['count' => 7, 'amount' => 150]]
+                    ],
+                    ['id' => 2, 'movement_type' => 'move', 'warehouse_from_id' => 2, 'warehouse_to_id' => 1, 'date' => '2018-08-10', 'total_count' => 100,
+                        'product_list' => [
+                            1 => ['count' => 5, 'amount' => 100],
+                            2 => ['count' => 7, 'amount' => 150],
+                            3 => ['count' => 1, 'amount' => 90]]
+                    ],
+                    ['id' => 3, 'movement_type' => 'detach', 'warehouse_id' => 1, 'date' => '2018-08-10', 'total_count' => 100,
+                        'product_list' => [
+                            1 => ['count' => 5, 'amount' => 100]]
+                    ]
+                ], true
+            ],
+            [
+                1, 1, false, [],
+                [['id' => 1, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-09', 'total_count' => 100,
+                    'products' => [['product_id' => 1,  'count' => 5, 'amount' => 100]]]],
+                [['id' => 1, 'movement_type' => 'app', 'warehouse_id' => 1, 'date' => '2018-08-09', 'total_count' => 100,
+                    'product_list' => [1 => ['count' => 5, 'amount' => 100]]]], false, 'Warehouse does not exist 1'
+            ],
+            [
+                1, 1, false, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '2', 'balance' => '0', 'total_size' => '0'],
+                [['id' => 1, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-09', 'total_count' => 100,
+                    'products' => [['product_id' => 1,  'count' => 5, 'amount' => 100]]]],
+                [['id' => 1, 'movement_type' => 'app', 'warehouse_id' => 1, 'date' => '2018-08-09', 'total_count' => 100,
+                    'product_list' => [1 => ['count' => 5, 'amount' => 100]]]], false, 'Wrong access 1'
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider dataDeleteWarehouse
+     */
+    public function testDeleteWarehouse($user_id, $warehouse_id, $warehouse_data, $warehouse_checked,
+                                        $logs_count, $allOK, $error_type = '')
+    {
+        $idx = 0;
+
+        $this->dbConnectionMock->expects($this->at($idx++))
+            ->method('fetchAssoc')
+            ->with('SELECT * FROM warehouses WHERE id = ?',
+                [$warehouse_id])
+            ->will($this->returnValue($warehouse_data));
+
+        if ($warehouse_checked) {
+            $this->dbConnectionMock->expects($this->at($idx++))
+                ->method('fetchAssoc')
+                ->with('SELECT COUNT(*) FROM transactions
+                        WHERE warehouse_from_id = ? OR warehouse_to_id = ?',
+                    [$warehouse_id, $warehouse_id])
+                ->will($this->returnValue(['COUNT(*)' => $logs_count]));
+
+            if ($logs_count == 0)
+                $this->dbConnectionMock->expects($this->at($idx))
+                    ->method('executeQuery')
+                    ->with('DELETE FROM warehouses WHERE id = ?',
+                        [$warehouse_id]);
+        }
+
+        if (!$allOK)
+            $this->expectExceptionMessage($error_type);
+
+        $this->warehouseService->DeleteWarehouse($user_id, $warehouse_id);
+    }
+
+    public function dataDeleteWarehouse()
+    {
+        return [
+            [
+                1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '0', 'total_size' => '0'],
+                true, 0, true
+            ],
+            [
+                1, 1, [],
+                false, 0, false, 'Warehouse does not exist 1'
+            ],
+            [
+                1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '2', 'balance' => '0', 'total_size' => '0'],
+                false, 0, false, 'Wrong access 1'
+            ],
+            [
+                1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '0', 'total_size' => '0'],
+                true, 2, false, 'This warehouse has logs'
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider dataGetProductList
+     */
+    public function testGetProductList($user_id, $warehouse_id,  $warehouse_data, $warehouse_checked,
+                                       $product_list, $expected, $allOK, $error_type = '')
+    {
+        $idx = 0;
+
+        $this->dbConnectionMock->expects($this->at($idx++))
+            ->method('fetchAssoc')
+            ->with('SELECT * FROM warehouses WHERE id = ?',
+                [$warehouse_id])
+            ->will($this->returnValue($warehouse_data));
+
+        if ($warehouse_checked) {
+            $QueryProductMock = $this->getMockBuilder('\PDOStatement')
+                ->getMock();
+
+            for ($i = 0; $i <= count($product_list); $i++) {
+                $QueryProductMock->expects($this->at($i))
+                    ->method('fetch')
+                    ->will($this->returnValue($product_list[$i]));
+            }
+
+            $this->dbConnectionMock->expects($this->at($idx))
+                ->method('executeQuery')
+                ->with('SELECT * FROM products_on_warehouse WHERE warehouse_id = ?',
+                    [$warehouse_id])
+                ->will($this->returnValue($QueryProductMock));
+        }
+
+        if (!$allOK)
+            $this->expectExceptionMessage($error_type);
+
+        $products = $this->warehouseService->GetProductsList($user_id, $warehouse_id);
+
+        if ($allOK)
+            $this->assertEquals($products, $expected);
+    }
+
+    public function dataGetProductList()
+    {
+        return [
+            [
+                1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '150', 'total_size' => '0'],
+                true, [['product_id' => 1, 'count' => 3], ['product_id' => 2, 'count' => 4], ['product_id' => 3, 'count' => 7]],
+                ['balance' => 150, 'products_list' => [['id' => 1, 'count' => 3], ['id' => 2, 'count' => 4], ['id' => 3, 'count' => 7]]],
+                true
+            ],
+            [
+                1, 1, [],
+                false, [['product_id' => 1, 'count' => 3], ['product_id' => 2, 'count' => 4], ['product_id' => 3, 'count' => 7]],
+                ['balance' => 150, 'products_list' => [['id' => 1, 'count' => 3], ['id' => 2, 'count' => 4], ['id' => 3, 'count' => 7]]],
+                false, 'Warehouse does not exist 1'
+            ],
+            [
+                1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '2', 'balance' => '150', 'total_size' => '0'],
+                false, [['product_id' => 1, 'count' => 3], ['product_id' => 2, 'count' => 4], ['product_id' => 3, 'count' => 7]],
+                ['balance' => 150, 'products_list' => [['id' => 1, 'count' => 3], ['id' => 2, 'count' => 4], ['id' => 3, 'count' => 7]]],
+                false, 'Wrong access 1'
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider dataAppProductList
+     */
+    public function testAppProductList($product_list, $transaction_product_list, $expected)
+    {
+        $this->warehouseService->AppProductList($product_list, $transaction_product_list);
+
+        $this->assertEquals($product_list, $expected);
+    }
+
+    public function dataAppProductList()
+    {
+        return [
+            [
+                [1 => 10, 2 => 13, 3 => 1], [1 => ['count' => 3, 'amount' => 50], 3 => ['count' => 10, 'amount' => 30]],
+                [1 => 13, 2 => 13, 3 => 11]
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider dataDetachProductList
+     */
+    public function testDetachProductList($product_list, $transaction_product_list, $expected)
+    {
+        $this->warehouseService->DetachProductList($product_list, $transaction_product_list);
+
+        $this->assertEquals($product_list, $expected);
+    }
+
+    public function dataDetachProductList()
+    {
+        return [
+            [
+                [1 => 10, 2 => 13, 3 => 1], [1 => ['count' => 3, 'amount' => 50], 3 => ['count' => 1, 'amount' => 30]],
+                [1 => 7, 2 => 13, 3 => 0]
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider dataUnsetZeroProductList
+     */
+    public function testUnsetZeroProductList($product_list, $expected)
+    {
+        $this->warehouseService->UnsetZeroProductList($product_list);
+
+        $this->assertEquals($product_list, $expected);
+    }
+
+    public function dataUnsetZeroProductList()
+    {
+        return [
+            [
+                [1 => 0, 2 => 13, 3 => 0],
+                [2 => 13]
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider dataGetProductListOnDate
+     */
+    public function testGetProductListOnDate($user_id, $warehouse_id,  $warehouse_data, $warehouse_checked,
+                                             $full_product_list, $transactions, $date, $expected, $allOK, $error_type = '')
+    {
+        $idx = 0;
+
+        $this->dbConnectionMock->expects($this->at($idx++))
+            ->method('fetchAssoc')
+            ->with('SELECT * FROM warehouses WHERE id = ?',
+                [$warehouse_id])
+            ->will($this->returnValue($warehouse_data));
+
+        if ($warehouse_checked) {
+            $QueryProductListMock = $this->getMockBuilder('\PDOStatement')
+                ->getMock();
+
+            for ($i = 0; $i <= count($full_product_list); $i++) {
+                $QueryProductListMock->expects($this->at($i))
+                    ->method('fetch')
+                    ->will($this->returnValue($full_product_list[$i]));
+            }
+
+            $this->dbConnectionMock->expects($this->at($idx++))
+                ->method('executeQuery')
+                ->with('SELECT * FROM products WHERE user_owner_id = ?',
+                    [$user_id])
+                ->will($this->returnValue($QueryProductListMock));
+
+            $QueryTransactionMock = $this->getMockBuilder('\PDOStatement')
+                ->getMock();
+
+            for ($i = 0; $i <= count($transactions); $i++) {
+                $QueryTransactionMock->expects($this->at($i))
+                    ->method('fetch')
+                    ->will($this->returnValue($transactions[$i]));
+            }
+
+            $this->dbConnectionMock->expects($this->at($idx++))
+                ->method('executeQuery')
+                ->with('SELECT * FROM transactions 
+                   WHERE (warehouse_from_id = ? OR warehouse_to_id = ?) AND date <= ?',
+                    [$warehouse_id, $warehouse_id, $date])
+                ->will($this->returnValue($QueryTransactionMock));
+
+            for ($i = 0; $i < count($transactions); $i++) {
+                $QueryProductMock = $this->getMockBuilder('\PDOStatement')
+                    ->getMock();
+
+                for ($j = 0; $j <= count($transactions[$i]['products']); $j++) {
+                    $QueryProductMock->expects($this->at($j))
+                        ->method('fetch')
+                        ->will($this->returnValue($transactions[$i]['products'][$j]));
+                }
+
+                $this->dbConnectionMock->expects($this->at($idx++))
+                    ->method('executeQuery')
+                    ->with('SELECT * FROM products_on_transaction WHERE transaction_id = ?',
+                        [$transactions[$i]['id']])
+                    ->will($this->returnValue($QueryProductMock));
+            }
+        }
+
+        if (!$allOK)
+            $this->expectExceptionMessage($error_type);
+
+        $products = $this->warehouseService->GetProductListOnDate($user_id, $warehouse_id, $date);
+
+        if ($allOK)
+            $this->assertEquals($products, $expected);
+    }
+
+    public function dataGetProductListOnDate()
+    {
+        return [
+            [
+                1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '150', 'total_size' => '0'],
+                true, [['id' => 1], ['id' => 2], ['id' => 3], ['id' => 4]],
+                [
+                    ['id' => 1, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-09', 'total_count' => 250,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150]
+                            ]
+                    ],
+                    ['id' => 2, 'warehouse_from_id' => 2, 'warehouse_to_id' => 1, 'movement_type' => 'move', 'date' => '2018-08-10', 'total_count' => 340,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150],
+                                ['product_id' => 3,  'count' => 1, 'amount' => 90]
+                            ]
+                    ],
+                    ['id' => 3, 'warehouse_from_id' => 1, 'warehouse_to_id' => null, 'movement_type' => 'detach', 'date' => '2018-08-11', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100]
+                            ]
+                    ]
+                ], '2018-08-11',
+                ['balance' => 490, 'products' => [1 => 5, 2 => 14,  3 => 1]], true
+            ],
+            [
+                1, 1, [],
+                false, [['id' => 1], ['id' => 2], ['id' => 3], ['id' => 4]],
+                [
+                    ['id' => 1, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-09', 'total_count' => 250,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150]
+                            ]
+                    ],
+                    ['id' => 2, 'warehouse_from_id' => 2, 'warehouse_to_id' => 1, 'movement_type' => 'move', 'date' => '2018-08-10', 'total_count' => 340,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150],
+                                ['product_id' => 3,  'count' => 1, 'amount' => 90]
+                            ]
+                    ],
+                    ['id' => 3, 'warehouse_from_id' => 1, 'warehouse_to_id' => null, 'movement_type' => 'detach', 'date' => '2018-08-11', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100]
+                            ]
+                    ]
+                ], '2018-08-11',
+                ['balance' => 490, 'products' => [1 => 5, 2 => 14,  3 => 1]], false, 'Warehouse does not exist 1'
+            ],
+            [
+                1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '2', 'balance' => '150', 'total_size' => '0'],
+                false, [['id' => 1], ['id' => 2], ['id' => 3], ['id' => 4]],
+                [
+                    ['id' => 1, 'warehouse_from_id' => null, 'warehouse_to_id' => 1, 'movement_type' => 'app', 'date' => '2018-08-09', 'total_count' => 250,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150]
+                            ]
+                    ],
+                    ['id' => 2, 'warehouse_from_id' => 2, 'warehouse_to_id' => 1, 'movement_type' => 'move', 'date' => '2018-08-10', 'total_count' => 340,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100],
+                                ['product_id' => 2,  'count' => 7, 'amount' => 150],
+                                ['product_id' => 3,  'count' => 1, 'amount' => 90]
+                            ]
+                    ],
+                    ['id' => 3, 'warehouse_from_id' => 1, 'warehouse_to_id' => null, 'movement_type' => 'detach', 'date' => '2018-08-11', 'total_count' => 100,
+                        'products' =>
+                            [
+                                ['product_id' => 1,  'count' => 5, 'amount' => 100]
+                            ]
+                    ]
+                ], '2018-08-11',
+                ['balance' => 490, 'products' => [1 => 5, 2 => 14,  3 => 1]], false, 'Wrong access 1'
+            ],
+            [
+                1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '150', 'total_size' => '0'],
+                true, [['id' => 1], ['id' => 2], ['id' => 3], ['id' => 4]],
+                [
+                ], '2018-08-11',
+                ['balance' => 0, 'products' => []], true
+            ]
+        ];
+    }
 }
