@@ -12,19 +12,19 @@ class UserRepository extends AbstractRepository
      */
     public function UserCheck($user)
     {
-        $email_duplicates = $this->dbConnection->executeQuery(
+        $email_duplicates = $this->dbConnection->fetchAssoc(
             'SELECT COUNT(*) FROM users WHERE email = ? AND id <> ?',
             [$user->getEmail(), $user->getId()]
-        )->fetch(\PDO::FETCH_ASSOC)['COUNT(*)'];
+        )['COUNT(*)'];
 
         if ($email_duplicates > 0){
             throw new \InvalidArgumentException('User with this email has already registered!');
         }
 
-        $fio_duplicates = $this->dbConnection->executeQuery(
+        $fio_duplicates = $this->dbConnection->fetchAssoc(
             'SELECT COUNT(*) FROM users WHERE name = ? AND surname = ? AND company_id = ? AND id <> ?',
             [$user->getName(), $user->getSurname(), $user->getCompanyId(), $user->getId()]
-        )->fetch(\PDO::FETCH_ASSOC)['COUNT(*)'];
+        )['COUNT(*)'];
 
         if ($fio_duplicates > 0){
             throw new \InvalidArgumentException('User with this name in this company has already registered!');
@@ -38,10 +38,10 @@ class UserRepository extends AbstractRepository
      */
     public function GetCompany($company_name)
     {
-        $company_id = $this->dbConnection->executeQuery(
+        $company_id = $this->dbConnection->fetchAssoc(
             'SELECT id FROM companies WHERE company_name = ?',
             [$company_name]
-        )->fetch(\PDO::FETCH_ASSOC)['id'];
+        )['id'];
 
         if ($company_id == null){
             throw new \InvalidArgumentException('Company does not exist!');
@@ -64,9 +64,9 @@ class UserRepository extends AbstractRepository
     {
         $user = new User(null, $email, $name, $surname, $phone_number, $password, null, $company_name);
 
-        $this->UserCheck($user);
-
         $user->setCompanyId($this->GetCompany($user->getCompanyName()));
+
+        $this->UserCheck($user);
 
         $this->dbConnection->executeQuery(
             'INSERT INTO users 
@@ -122,9 +122,9 @@ class UserRepository extends AbstractRepository
      */
     public function UpdateUser($user)
     {
-        $this->UserCheck($user);
-
         $user->setCompanyId($this->GetCompany($user->getCompanyName()));
+
+        $this->UserCheck($user);
 
         $this->dbConnection->executeQuery(
             'UPDATE users 
@@ -164,7 +164,7 @@ class UserRepository extends AbstractRepository
             [$email]
         );
 
-        if (isset($row)) {
+        if (isset($row['id'])) {
             $password_hash = md5($password . $row['salt']);
             if ($password_hash != $row['password']) {
                 throw new \InvalidArgumentException('Wrong password!');

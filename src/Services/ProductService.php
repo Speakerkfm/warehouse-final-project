@@ -58,9 +58,7 @@ class ProductService
      */
     public function GetProduct($user_id, $product_id)
     {
-        $this->productRepository->CheckProduct($user_id, $product_id);
-
-        return $this->productRepository->GetProduct($product_id);
+        return $this->productRepository->GetProduct($user_id, $product_id);
     }
 
     /**
@@ -87,9 +85,7 @@ class ProductService
      */
     public function UpdateProduct($user_id, $product_id, $name, $price, $size, $type_name)
     {
-        $this->productRepository->CheckProduct($user_id, $product_id);
-
-        $product = $this->productRepository->GetProduct($product_id);
+        $product = $this->productRepository->GetProduct($user_id, $product_id);
 
         $product->setName($name);
         $product->setPrice($price);
@@ -106,7 +102,7 @@ class ProductService
      */
     public function GetLogs($user_id, $product_id)
     {
-        $this->productRepository->CheckProduct($user_id, $product_id);
+        $this->productRepository->GetProduct($user_id, $product_id);
 
         $transactions_list = [];
 
@@ -129,7 +125,7 @@ class ProductService
      */
     public function DeleteProduct($user_id, $product_id)
     {
-        $this->productRepository->CheckProduct($user_id, $product_id);
+        $this->productRepository->GetProduct($user_id, $product_id);
         $this->transactionRepository->CheckProductLogs($product_id);
 
         $this->productRepository->DeleteProduct($product_id);
@@ -142,9 +138,7 @@ class ProductService
      */
     public function GetAvailableInfo($user_id, $product_id)
     {
-        $this->productRepository->CheckProduct($user_id, $product_id);
-
-        $product = $this->productRepository->GetProduct($product_id);
+        $product = $this->productRepository->GetProduct($user_id, $product_id);
 
         return $this->productOnWarehouseRepository->GetWarehouseList($product);
     }
@@ -169,7 +163,7 @@ class ProductService
      */
     public function GetAvailableOnDate($user_id, $product_id, $date)
     {
-        $this->productRepository->CheckProduct($user_id, $product_id);
+        $this->productRepository->GetProduct($user_id, $product_id);
 
         $warehouses_list = $this->warehouseRepository->GetDefaultWarehouseList($user_id);
 

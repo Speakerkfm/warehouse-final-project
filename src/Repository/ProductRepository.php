@@ -10,7 +10,7 @@ class ProductRepository extends AbstractRepository
      * @param $user_id int
      * @param $product_id int
      * @throws
-     */
+     *
     public function CheckProduct($user_id, $product_id)
     {
         $row = $this->dbConnection->fetchAssoc(
@@ -25,6 +25,7 @@ class ProductRepository extends AbstractRepository
             throw new \InvalidArgumentException('Wrong access '.$product_id);
         }
     }
+     */
 
     /**
      * @param $user_id int
