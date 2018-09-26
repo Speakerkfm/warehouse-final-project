@@ -66,14 +66,6 @@ create table products
 alter table products
   add primary key (id);
 
-create table warehouse
-(
-  id      int auto_increment
-    primary key,
-  name    varchar(45)  not null,
-  address varchar(255) not null
-);
-
 create table warehouses
 (
   id         int auto_increment,
