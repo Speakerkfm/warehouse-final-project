@@ -240,8 +240,26 @@ create trigger transaction_amount_counter
     SET NEW.amount = (NEW.count) * (SELECT price FROM products WHERE id = NEW.product_id);
   END;
 
+create trigger transaction_amount_counter_update
+  before UPDATE
+  on products_on_transaction
+  for each row
+  BEGIN
+    SET NEW.amount = (NEW.count) * (SELECT price FROM products WHERE id = NEW.product_id);
+  END;
+
 create trigger transaction_total_counter
   after INSERT
+  on products_on_transaction
+  for each row
+  BEGIN
+    DECLARE `@total_count` double;
+    SET `@total_count` = (SELECT SUM(amount) FROM products_on_transaction WHERE transaction_id = NEW.transaction_id);
+    UPDATE transactions SET total_count = `@total_count` WHERE id = NEW.transaction_id;
+  END;
+
+create trigger transaction_total_counter_update
+  after UPDATE
   on products_on_transaction
   for each row
   BEGIN

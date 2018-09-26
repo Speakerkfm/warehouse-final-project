@@ -533,6 +533,9 @@ class WarehouseServiceTest extends \PHPUnit\Framework\TestCase
                                 }
 
                                 $this->dbConnectionMock->expects($this->at($idx++))
+                                    ->method('fetchAssoc');
+
+                                $this->dbConnectionMock->expects($this->at($idx++))
                                     ->method('executeQuery')
                                     ->with('INSERT INTO products_on_transaction (transaction_id, product_id, count) VALUES (?, ?, ?)',
                                         [
@@ -577,6 +580,9 @@ class WarehouseServiceTest extends \PHPUnit\Framework\TestCase
                                         }
                                     }
                                 }
+
+                                $this->dbConnectionMock->expects($this->at($idx++))
+                                    ->method('fetchAssoc');
 
                                 $this->dbConnectionMock->expects($this->at($idx++))
                                     ->method('executeQuery')
@@ -655,6 +661,9 @@ class WarehouseServiceTest extends \PHPUnit\Framework\TestCase
                                                         ->with('INSERT INTO products_on_warehouse (product_id, warehouse_id, count) VALUES (?, ?, ?)',
                                                             [$product['id'], $warehouses['to'], $product['count']]);
                                                 }
+
+                                                $this->dbConnectionMock->expects($this->at($idx++))
+                                                    ->method('fetchAssoc');
 
                                                 $this->dbConnectionMock->expects($this->at($idx++))
                                                     ->method('executeQuery')

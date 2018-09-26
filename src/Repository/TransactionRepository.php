@@ -35,14 +35,30 @@ class TransactionRepository extends AbstractRepository
      */
     public function AddProductToTransaction($transaction, $product_id, $count)
     {
-        $this->dbConnection->executeQuery(
-            'INSERT INTO products_on_transaction (transaction_id, product_id, count) VALUES (?, ?, ?)',
-            [
-                $transaction->getId(),
-                $product_id,
-                $count
-            ]
-        );
+        $row = $this->dbConnection->fetchAssoc(
+            'SELECT * FROM products_on_transaction 
+                       WHERE transaction_id = ? AND product_id = ?',
+            [$transaction->getId(), $product_id]);
+
+        if (!isset($row['count'])) {
+            $this->dbConnection->executeQuery(
+                'INSERT INTO products_on_transaction (transaction_id, product_id, count) VALUES (?, ?, ?)',
+                [
+                    $transaction->getId(),
+                    $product_id,
+                    $count
+                ]
+            );
+        } else {
+            $this->dbConnection->executeQuery(
+                'UPDATE products_on_transaction SET count = ? WHERE transaction_id = ? AND product_id = ?',
+                [
+                    $count + $row['count'],
+                    $transaction->getId(),
+                    $product_id
+                ]
+            );
+        }
     }
 
     /**
