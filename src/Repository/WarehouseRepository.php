@@ -51,7 +51,6 @@ class WarehouseRepository extends AbstractRepository
      */
     public function CheckWarehousesInTransaction($user_id, $warehouse_from_id, $warehouse_to_id, $movement_type)
     {
-        /**
         switch ($movement_type){
             case 'app':
                 $this->CheckWarehouse($user_id, $warehouse_to_id);
@@ -64,7 +63,6 @@ class WarehouseRepository extends AbstractRepository
                 $this->CheckWarehouse($user_id, $warehouse_to_id);
                 break;
         }
-         */
         if ($warehouse_from_id == $warehouse_to_id) {
             throw new \InvalidArgumentException('Warehouses are the same!');
         }

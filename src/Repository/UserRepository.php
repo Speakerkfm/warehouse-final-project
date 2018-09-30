@@ -62,7 +62,7 @@ class UserRepository extends AbstractRepository
      */
     public function RegisterUser($email, $name, $surname, $password, $phone_number, $company_name)
     {
-        $user = new User(null, $email, $name, $surname, $phone_number, $password, null, $company_name);
+        $user = new User(0, $email, $name, $surname, $phone_number, $password, 0, $company_name);
 
         $user->setCompanyId($this->GetCompany($user->getCompanyName()));
 

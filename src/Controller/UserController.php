@@ -77,7 +77,7 @@ class UserController extends AbstractController
             $this->CheckAccess();
 
             unset($_SESSION['id']);
-            session_destroy();
+            //session_destroy();
 
             return $response->withStatus(200, 'You logged out');
         } catch (\Exception $e){
@@ -92,7 +92,7 @@ class UserController extends AbstractController
 
             $this->UserService->DeleteUser($this->GetUserId());
             unset($_SESSION['id']);
-            session_destroy();
+            //session_destroy();
 
             return $response->withStatus(200, 'Success!');
         } catch (\Exception $e) {
