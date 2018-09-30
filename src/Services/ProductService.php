@@ -194,7 +194,7 @@ class ProductService
 
         $jsonResult = [
             'total_cost' => $total_cost,
-                'warehouses' => $warehouses_list
+                'warehouses_list' => $warehouses_list
             ];
 
         return $jsonResult;

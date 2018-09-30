@@ -5,6 +5,7 @@ INSERT INTO `warehouse-test`.users (id, email, password, name, surname, phone_nu
 INSERT INTO `warehouse-test`.products (id, name, price, size, type_id, user_owner_id) VALUES (1, 'product1', 10.2, 3, 1, 12);
 INSERT INTO `warehouse-test`.products (id, name, price, size, type_id, user_owner_id) VALUES (2, 'product2', 15, 5.1, 1, 12);
 INSERT INTO `warehouse-test`.products (id, name, price, size, type_id, user_owner_id) VALUES (3, 'product3', 0.5, 1, 1, 12);
+INSERT INTO `warehouse-test`.products (id, name, price, size, type_id, user_owner_id) VALUES (5, 'product5', 36, 10, 1, 12);
 INSERT INTO `warehouse-test`.warehouses (id, address, capacity, user_id, balance, total_size) VALUES (17, 'add1', 200, 11, 0, 0);
 INSERT INTO `warehouse-test`.warehouses (id, address, capacity, user_id, balance, total_size) VALUES (19, 'add2', 0, 11, 0, 0);
 INSERT INTO `warehouse-test`.warehouses (id, address, capacity, user_id, balance, total_size) VALUES (20, 'add3', 0, 11, 0, 0);

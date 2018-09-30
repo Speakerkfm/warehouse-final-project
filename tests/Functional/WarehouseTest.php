@@ -2,6 +2,8 @@
 
 namespace App\Tests\Functional;
 
+use phpDocumentor\Reflection\DocBlock\Tags\Reference\Url;
+
 class WarehouseTest extends ApiTestCase
 {
     /**
@@ -604,6 +606,154 @@ class WarehouseTest extends ApiTestCase
                     'warehouses' => '{}',
                     'product_list' => '[{"id":1, "count":1}, {"id":3, "count":20}]'
                 ], 400, 'Wrong warehouses.to'
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider dataGetLogs
+     */
+    public function testGetLogs($user, $warehouse_id, $expected_status, $reason)
+    {
+        $this->request('POST', '/login', $user);
+        $this->assertThatResponseHasStatus(301);
+
+        $this->request('GET', '/profile/warehouses/'.$warehouse_id.'/logs');
+        $this->assertThatResponseHasStatus($expected_status);
+        if ($expected_status == 200)
+            $this->assertThatResponseHasContentType('application/json');
+        $this->assertThatResponseReasonPhrase($reason);
+
+        $this->request('GET', '/profile/logout');
+        $this->assertThatResponseHasStatus(200);
+    }
+
+    public function dataGetLogs()
+    {
+        return [
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                24,
+                200,
+                'OK'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                26,
+                200,
+                'OK'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                17,
+                400,
+                'Wrong access 17'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                5,
+                400,
+                'Warehouse does not exist 5'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                'asdf',
+                400,
+                'Wrong id'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                -24,
+                400,
+                'Wrong id'
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider dataGetProductList
+     */
+    public function testGetProductList($user, $warehouse_id, $date, $expected_data, $expected_status, $reason)
+    {
+        $this->request('POST', '/login', $user);
+        $this->assertThatResponseHasStatus(301);
+
+        $this->request('GET', '/profile/warehouses/'.$warehouse_id.'/products'.$date);
+        $this->assertThatResponseHasStatus($expected_status);
+        $this->assertEquals($expected_data, $this->responseData());
+        $this->assertThatResponseReasonPhrase($reason);
+
+        $this->request('GET', '/profile/logout');
+        $this->assertThatResponseHasStatus(200);
+    }
+
+    public function dataGetProductList()
+    {
+        return [
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                24, '',
+                [
+                    'balance' => 48.4,
+                    'products_list' => [
+                        1 => 2,
+                        3 => 56
+                    ]
+                ], 200, 'OK'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                26, '',
+                [
+                    'balance' => 2,
+                    'products_list' => [
+                        3 => 4
+                    ]
+                ], 200, 'OK'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                17, '',
+                null, 400, 'Wrong access 17'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                10, '',
+                null, 400, 'Warehouse does not exist 10'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                'asdf', '',
+                null, 400, 'Wrong id'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                24, '?date=2018-09-15 17:38:39',
+                [
+                    'balance' => 20.4,
+                    'products_list' => [
+                        1 => 2
+                    ]
+                ], 200, 'OK'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                24, '?date=2018-09-15 17:40:40',
+                [
+                    'balance' => 50.4,
+                    'products_list' => [
+                        1 => 2,
+                        3 => 60
+                    ]
+                ], 200, 'OK'
+            ],
+            [
+                ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
+                24, '?date=2018-01-15 17:40:40',
+                [
+                    'balance' => 0,
+                    'products_list' => []
+                ], 200, 'OK'
             ]
         ];
     }

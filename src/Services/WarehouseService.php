@@ -325,7 +325,7 @@ class WarehouseService
 
         $jsonResult = [
             'balance' => $balance,
-            'products' => $products_list
+            'products_list' => $products_list
         ];
 
         return $jsonResult;

@@ -86,10 +86,7 @@ class ProductsOnWarehouseRepository extends AbstractRepository
         );
 
         while ($product = $products->fetch(\PDO::FETCH_ASSOC)) {
-            $products_list[] = [
-                'id' => $product['product_id'],
-                'count' => $product['count']
-                ];
+            $products_list[$product['product_id']] = intval($product['count']);
         }
 
         return $products_list;
@@ -112,10 +109,8 @@ class ProductsOnWarehouseRepository extends AbstractRepository
         $total_cost = 0;
 
         while ($warehouse = $warehouses->fetch(\PDO::FETCH_ASSOC)) {
-            $warehouses_list[] = [
-                'id' => $warehouse['warehouse_id'],
-                'count' => $warehouse['count']
-            ];
+            $warehouses_list[$warehouse['warehouse_id']] = intval($warehouse['count']);
+
             $total_cost += $warehouse['count'] * $product->getPrice();
         }
 

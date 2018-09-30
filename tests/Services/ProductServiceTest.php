@@ -547,9 +547,9 @@ class ProductServiceTest extends \PHPUnit\Framework\TestCase
                     ['warehouse_id' => 1, 'count' => 10], ['warehouse_id' => 2, 'count' => 5], ['warehouse_id' => 3, 'count' => 1]
                 ], ['total_cost' => 160,
                 'warehouses_list' => [
-                    ['id' => 1, 'count' => 10],
-                    ['id' => 2, 'count' => 5],
-                    ['id' => 3, 'count' => 1]
+                    1 => 10,
+                    2 => 5,
+                    3 => 1
                 ]], true
             ],
             [
@@ -559,9 +559,9 @@ class ProductServiceTest extends \PHPUnit\Framework\TestCase
                     ['warehouse_id' => 1, 'count' => 10], ['warehouse_id' => 2, 'count' => 5], ['warehouse_id' => 3, 'count' => 1]
                 ], ['total_cost' => 160,
                 'warehouses_list' => [
-                    ['id' => 1, 'count' => 10],
-                    ['id' => 2, 'count' => 5],
-                    ['id' => 3, 'count' => 1]
+                    1 => 10,
+                    2 => 5,
+                    3 => 1
                 ]], false, 'Product does not exist 1'
             ],
             [
@@ -571,9 +571,9 @@ class ProductServiceTest extends \PHPUnit\Framework\TestCase
                     ['warehouse_id' => 1, 'count' => 10], ['warehouse_id' => 2, 'count' => 5], ['warehouse_id' => 3, 'count' => 1]
                 ], ['total_cost' => 160,
                 'warehouses_list' => [
-                    ['id' => 1, 'count' => 10],
-                    ['id' => 2, 'count' => 5],
-                    ['id' => 3, 'count' => 1]
+                    1 => 10,
+                    2 => 5,
+                    3 => 1
                 ]], false, 'Wrong access 1'
             ]
         ];
@@ -711,7 +711,7 @@ class ProductServiceTest extends \PHPUnit\Framework\TestCase
                 ], '2018-08-11',
                 [
                     'total_cost' => 110,
-                    'warehouses' => [
+                    'warehouses_list' => [
                         1 => 9,
                         2 => 2
                     ]
@@ -752,7 +752,7 @@ class ProductServiceTest extends \PHPUnit\Framework\TestCase
                 ], '2018-08-11',
                 [
                     'total_cost' => 110,
-                    'warehouses' => [
+                    'warehouses_list' => [
                         1 => 9,
                         2 => 2
                     ]
@@ -793,7 +793,7 @@ class ProductServiceTest extends \PHPUnit\Framework\TestCase
                 ], '2018-08-11',
                 [
                     'total_cost' => 110,
-                    'warehouses' => [
+                    'warehouses_list' => [
                         1 => 9,
                         2 => 2
                     ]

@@ -1277,19 +1277,19 @@ class WarehouseServiceTest extends \PHPUnit\Framework\TestCase
             [
                 1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '1', 'balance' => '150', 'total_size' => '0'],
                 true, [['product_id' => 1, 'count' => 3], ['product_id' => 2, 'count' => 4], ['product_id' => 3, 'count' => 7]],
-                ['balance' => 150, 'products_list' => [['id' => 1, 'count' => 3], ['id' => 2, 'count' => 4], ['id' => 3, 'count' => 7]]],
+                ['balance' => 150, 'products_list' => [1 => 3, 2 => 4, 3 => 7]],
                 true
             ],
             [
                 1, 1, [],
                 false, [['product_id' => 1, 'count' => 3], ['product_id' => 2, 'count' => 4], ['product_id' => 3, 'count' => 7]],
-                ['balance' => 150, 'products_list' => [['id' => 1, 'count' => 3], ['id' => 2, 'count' => 4], ['id' => 3, 'count' => 7]]],
+                ['balance' => 150, 'products_list' => [1 => 3, 2 => 4, 3 => 7]],
                 false, 'Warehouse does not exist 1'
             ],
             [
                 1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '2', 'balance' => '150', 'total_size' => '0'],
                 false, [['product_id' => 1, 'count' => 3], ['product_id' => 2, 'count' => 4], ['product_id' => 3, 'count' => 7]],
-                ['balance' => 150, 'products_list' => [['id' => 1, 'count' => 3], ['id' => 2, 'count' => 4], ['id' => 3, 'count' => 7]]],
+                ['balance' => 150, 'products_list' => [1 => 3, 2 => 4, 3 => 7]],
                 false, 'Wrong access 1'
             ]
         ];
@@ -1457,7 +1457,7 @@ class WarehouseServiceTest extends \PHPUnit\Framework\TestCase
                             ]
                     ]
                 ], '2018-08-11',
-                ['balance' => 490, 'products' => [1 => 5, 2 => 14,  3 => 1]], true
+                ['balance' => 490, 'products_list' => [1 => 5, 2 => 14,  3 => 1]], true
             ],
             [
                 1, 1, [],
@@ -1485,7 +1485,7 @@ class WarehouseServiceTest extends \PHPUnit\Framework\TestCase
                             ]
                     ]
                 ], '2018-08-11',
-                ['balance' => 490, 'products' => [1 => 5, 2 => 14,  3 => 1]], false, 'Warehouse does not exist 1'
+                ['balance' => 490, 'products_list' => [1 => 5, 2 => 14,  3 => 1]], false, 'Warehouse does not exist 1'
             ],
             [
                 1, 1, ['id' => '1', 'address' => 'add1', 'capacity' => '150', 'user_id' => '2', 'balance' => '150', 'total_size' => '0'],
@@ -1507,7 +1507,7 @@ class WarehouseServiceTest extends \PHPUnit\Framework\TestCase
                             ]
                     ],
                     ['id' => 3, 'warehouse_from_id' => 1, 'warehouse_to_id' => null, 'movement_type' => 'detach', 'date' => '2018-08-11', 'total_count' => 100,
-                        'products' =>
+                        'products_list' =>
                             [
                                 ['product_id' => 1,  'count' => 5, 'amount' => 100]
                             ]
@@ -1520,7 +1520,7 @@ class WarehouseServiceTest extends \PHPUnit\Framework\TestCase
                 true, [['id' => 1], ['id' => 2], ['id' => 3], ['id' => 4]],
                 [
                 ], '2018-08-11',
-                ['balance' => 0, 'products' => []], true
+                ['balance' => 0, 'products_list' => []], true
             ]
         ];
     }

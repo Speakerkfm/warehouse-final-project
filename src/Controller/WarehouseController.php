@@ -11,6 +11,7 @@ namespace App\Controller;
 use App\Services\WarehouseService;
 use App\Model\Warehouse;
 use JsonSchema\Constraints\Constraint;
+use phpDocumentor\Reflection\DocBlock\Tags\Var_;
 use Slim\Http\Request;
 use Slim\Http\Response;
 
@@ -201,6 +202,7 @@ class WarehouseController extends AbstractController
             $this->Validation($args, 'IdSchema.json', Constraint::CHECK_MODE_COERCE_TYPES);
 
             $warehouse_id = $args['id'];
+            $date = $request->getParam('date');
 
             if (isset($date) && strtotime($date)) {
                 $jsonResponse = $this->WarehouseService->GetProductListOnDate($this->GetUserId(), $warehouse_id, $date);
