@@ -10,7 +10,7 @@ class WarehouseRepository extends AbstractRepository
      * @param $user_id int
      * @param $warehouse_id int
      * @throws
-     */
+     *
     public function CheckWarehouse($user_id, $warehouse_id)
     {
         $row = $this->dbConnection->fetchAssoc(
@@ -25,6 +25,7 @@ class WarehouseRepository extends AbstractRepository
             throw new \InvalidArgumentException('Wrong access '.$warehouse_id);
         }
     }
+     * /
 
     /**
      * @param $address string
@@ -53,14 +54,14 @@ class WarehouseRepository extends AbstractRepository
     {
         switch ($movement_type){
             case 'app':
-                $this->CheckWarehouse($user_id, $warehouse_to_id);
+                $this->GetWarehouse($user_id, $warehouse_to_id);
                 break;
             case 'detach':
-                $this->CheckWarehouse($user_id, $warehouse_from_id);
+                $this->GetWarehouse($user_id, $warehouse_from_id);
                 break;
             case 'move':
-                $this->CheckWarehouse($user_id, $warehouse_from_id);
-                $this->CheckWarehouse($user_id, $warehouse_to_id);
+                $this->GetWarehouse($user_id, $warehouse_from_id);
+                $this->GetWarehouse($user_id, $warehouse_to_id);
                 break;
         }
         if ($warehouse_from_id == $warehouse_to_id) {

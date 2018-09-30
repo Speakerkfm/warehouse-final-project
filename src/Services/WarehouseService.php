@@ -200,7 +200,7 @@ class WarehouseService
      */
     public function GetLogs($user_id, $warehouse_id)
     {
-        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
+        $this->warehouseRepository->GetWarehouse($user_id, $warehouse_id);
 
         $current_date = date('Y-m-d H:i:s');
 
@@ -223,7 +223,7 @@ class WarehouseService
      */
     public function DeleteWarehouse($user_id, $warehouse_id)
     {
-        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
+        $this->warehouseRepository->GetWarehouse($user_id, $warehouse_id);
 
         $this->transactionRepository->CheckWarehouseLogs($warehouse_id);
         $this->warehouseRepository->DeleteWarehouse($warehouse_id);
@@ -289,7 +289,7 @@ class WarehouseService
      */
     public function GetProductListOnDate($user_id, $warehouse_id, $date)
     {
-        $this->warehouseRepository->CheckWarehouse($user_id, $warehouse_id);
+        $this->warehouseRepository->GetWarehouse($user_id, $warehouse_id);
 
         $products_list = $this->productRepository->GetDefaultProductList($user_id);
 

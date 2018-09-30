@@ -121,4 +121,21 @@ class ProductsOnWarehouseRepository extends AbstractRepository
 
         return $jsonResult;
     }
+
+
+
+    /**
+     * @param $product_id int
+     * @throws
+     */
+    public function CheckProductOnWarehouses($product_id)
+    {
+        $count = $this->dbConnection->fetchAssoc(
+            'SELECT COUNT(*) FROM products_on_warehouse WHERE product_id = ?',
+            [$product_id]
+        );
+
+        if ($count > 0)
+            throw new \InvalidArgumentException('This product is already on warehouse!');
+    }
 }

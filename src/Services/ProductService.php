@@ -87,6 +87,9 @@ class ProductService
     {
         $product = $this->productRepository->GetProduct($user_id, $product_id);
 
+        if ($size != $product->getSize())
+            $this->productOnWarehouseRepository->CheckProductOnWarehouses($product_id);
+
         $product->setName($name);
         $product->setPrice($price);
         $product->setSize($size);

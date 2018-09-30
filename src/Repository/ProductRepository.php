@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Model\Product;
+use http\Exception\InvalidArgumentException;
 
 class ProductRepository extends AbstractRepository
 {

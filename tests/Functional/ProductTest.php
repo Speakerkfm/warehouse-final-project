@@ -290,14 +290,14 @@ class ProductTest extends ApiTestCase
                 [
                     'name' => 'product6',
                     'price' => 12,
-                    'size' => 3.4,
+                    'size' => 3,
                     'type_name' => 'type1'
                 ],
                 [
                     'id' => 1,
                     'name' => 'product6',
                     'price' => 12,
-                    'size' => 3.4,
+                    'size' => 3,
                     'type_name' => 'type1'
                 ], 200, 'OK'
             ],
@@ -325,7 +325,7 @@ class ProductTest extends ApiTestCase
                 [
                     'name' => 'product6',
                     'price' => 12,
-                    'size' => 3.4,
+                    'size' => 3,
                     'type_name' => 'type12'
                 ],
                 null, 400, 'Type does not exist!'
@@ -336,7 +336,7 @@ class ProductTest extends ApiTestCase
                 [
                     'name' => 'p',
                     'price' => 12,
-                    'size' => 3.4,
+                    'size' => 3,
                     'type_name' => 'type1'
                 ],
                 null, 400, 'Wrong name'
@@ -346,7 +346,7 @@ class ProductTest extends ApiTestCase
                 1,
                 [
                     'price' => 12,
-                    'size' => 3.4,
+                    'size' => 3,
                     'type_name' => 'type1'
                 ],
                 null, 400, 'Wrong name'
@@ -357,7 +357,7 @@ class ProductTest extends ApiTestCase
                 [
                     'name' => 'product6@#',
                     'price' => 12,
-                    'size' => 3.4,
+                    'size' => 3,
                     'type_name' => 'type1'
                 ],
                 null, 400, 'Wrong name'
@@ -368,7 +368,7 @@ class ProductTest extends ApiTestCase
                 [
                     'name' => 'product6',
                     'price' => 'asdf',
-                    'size' => 3.4,
+                    'size' => 3,
                     'type_name' => 'type1'
                 ],
                 null, 400, 'Wrong price'
@@ -379,7 +379,7 @@ class ProductTest extends ApiTestCase
                 [
                     'name' => 'product6',
                     'price' => 0,
-                    'size' => 3.4,
+                    'size' => 3,
                     'type_name' => 'type1'
                 ],
                 null, 400, 'Wrong price'
@@ -389,7 +389,7 @@ class ProductTest extends ApiTestCase
                 1,
                 [
                     'name' => 'product6',
-                    'size' => 3.4,
+                    'size' => 3,
                     'type_name' => 'type1'
                 ],
                 null, 400, 'Wrong price'
@@ -400,10 +400,10 @@ class ProductTest extends ApiTestCase
                 [
                     'name' => 'product6',
                     'price' => 12,
-                    'size' => 0,
+                    'size' => 4,
                     'type_name' => 'type1'
                 ],
-                null, 400, 'Wrong size'
+                null, 400, 'This product is already on warehouse!'
             ],
             [
                 ['email' => 'hidan98@mail.ru', 'password' => '12345678'],
