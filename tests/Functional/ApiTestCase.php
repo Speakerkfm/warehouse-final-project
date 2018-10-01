@@ -28,6 +28,8 @@ abstract class ApiTestCase extends TestCase
      */
     private $db;
 
+    private static $fixtures_loaded = false;
+
     protected function setUp()
     {
         $app = new \Slim\App();
@@ -39,15 +41,17 @@ abstract class ApiTestCase extends TestCase
         $container = $this->app->getContainer();
         $this->db = $container['db'];
 
-        //$this->db->executeQuery(file_get_contents('tests/Functional/Fixtures/fixtures.sql'));
+        if (!self::$fixtures_loaded) {
+            $this->db->executeQuery(file_get_contents('tests/Functional/Fixtures/truncate.sql'));
+            $this->db->executeQuery(file_get_contents('tests/Functional/Fixtures/fixtures.sql'));
+            self::$fixtures_loaded = true;
+        }
     }
 
     protected function tearDown()
     {
         $this->app = null;
         $this->response = null;
-
-        //$this->db->executeQuery(file_get_contents('tests/Functional/Fixtures/truncate.sql'));
     }
 
     protected function request($method, $url, array $requestParameters = [])
